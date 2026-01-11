@@ -53,8 +53,8 @@ public class DogEvent : MonoBehaviour
         hasTriggered = true;
 
         // 停止移動
-        agent.isStopped = true;
-        anim.SetBool("IsRunning", false);
+        if (agent != null) agent.isStopped = true;
+        if (anim != null) anim.SetBool("IsRunning", false);
 
         // 鎖定玩家操作
         if (playerScript != null) playerScript.enabled = false;
@@ -82,5 +82,7 @@ public class DogEvent : MonoBehaviour
         if (dialogueUI != null) dialogueUI.SetActive(true);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        DialogueManager.Instance.StartConversation(1);
     }
 }

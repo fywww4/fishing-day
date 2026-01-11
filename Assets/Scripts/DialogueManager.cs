@@ -1,161 +1,239 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
+using TMPro;
 
 public class DialogueManager : MonoBehaviour
 {
-    public static DialogueManager Instance; // ³æ¨Ò¼Ò¦¡¡A¤è«K©I¥s
+    public static DialogueManager Instance;
 
-    [Header("UI ²Õ¥ó")]
+    [Header("UI çµ„ä»¶")]
     public GameObject dialoguePanel;
-    public Text nameText;
-    public Text bodyText;
-    public GameObject optionPanel; // ¦pªG§A¦³§â«ö¶s¥]¦b¤@°_¡A©ÎªÌª½±µ±±¨î«ö¶s
-    public Button optionA;
-    public Button optionB;
+    public TMP_Text nameText;
+    public TMP_Text bodyText;
+    public GameObject optionA_Object;
+    public GameObject optionB_Object;
 
-    [Header("·Ç¤ß±±¨î")]
-    public Image crosshairImage;
-    public Sprite defaultIcon;
-    public Sprite interactIcon; // ¶ê²y¹Ï¥Ü
+    [Header("æº–å¿ƒæ§åˆ¶")]
+    public GameObject centerDotObject;
+    public GameObject outerCircleObject;
 
-    // ª¬ºA
     private bool isTalking = false;
-    private int currentStep = 0; // ¹ï¸Ü¶i«×
+    private int currentStep = 0;
+    private int conversationID = 0;
 
-    // ¬°¤F§Aªº FPS ±±¨î¾¹
     public MonoBehaviour playerController;
 
-    void Awake()
-    {
-        Instance = this;
-    }
+    void Awake() { Instance = this; }
 
     void Start()
     {
         dialoguePanel.SetActive(false);
-        optionA.gameObject.SetActive(false);
-        optionB.gameObject.SetActive(false);
-
-        // ³]©w«ö¶sºÊÅ¥
-        optionA.onClick.AddListener(() => ChooseOption(0));
-        optionB.onClick.AddListener(() => ChooseOption(1));
+        if (optionA_Object) optionA_Object.SetActive(false);
+        if (optionB_Object) optionB_Object.SetActive(false);
     }
 
-    // ¥~³¡©I¥s¡GÅÜ§ó·Ç¤ß
-    public void SetHoverState(bool isHovering)
+    void Update()
     {
-        if (isTalking) return; // ¹ï¸Ü¤¤¤£ÅÜ
-        crosshairImage.sprite = isHovering ? interactIcon : defaultIcon;
-        // ¦pªG·Q­nÅÜ¤jÅÜ¤p¤]¥i¥H¦b³o¸Ì¼g rectTransform.sizeDelta
+        if (isTalking) HandleInput();
     }
 
-    // ¥~³¡©I¥s¡G¶}©l¹ï¸Ü
-    public void StartConversation()
+    void HandleInput()
+    {
+        if (optionA_Object.activeSelf)
+        {
+            if (Input.GetKeyDown(KeyCode.A)) ChooseOption(0);
+            else if (Input.GetKeyDown(KeyCode.B)) ChooseOption(1);
+        }
+        else
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                currentStep++;
+                NextSentence();
+            }
+        }
+    }
+
+    public void StartConversation(int id)
     {
         if (isTalking) return;
-
+        conversationID = id;
         isTalking = true;
         dialoguePanel.SetActive(true);
         currentStep = 0;
-
-        // 1. Âê¦íª±®a²¾°Ê & ÄÀ©ñ·Æ¹«
         if (playerController != null) playerController.enabled = false;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        if (centerDotObject) centerDotObject.SetActive(false);
+        if (outerCircleObject) outerCircleObject.SetActive(false);
         NextSentence();
     }
 
-    // ³B²z¹ï¸Ü¬y
     public void NextSentence()
     {
-        optionA.gameObject.SetActive(false);
-        optionB.gameObject.SetActive(false);
+        if (optionA_Object) optionA_Object.SetActive(false);
+        if (optionB_Object) optionB_Object.SetActive(false);
 
+        switch (conversationID)
+        {
+            case 0: Script_OldMan(); break;
+            case 1: Script_Dog(); break;
+            case 2: Script_Dad(); break;
+
+            case 10: Script_Day1_Start(); break;
+            case 20: Script_Day2_Start(); break;
+
+            case 21: Script_Dad_Day2_Part2(); break;
+        }
+    }
+
+    // --- åŠ‡æœ¬å€ ---
+
+    // ç‹—ç‹—åŠ‡æœ¬
+    void Script_Dog()
+    {
         switch (currentStep)
         {
-            case 0:
-                ShowText("¦Ñ¤H", "¤¤¤È¦n¡AªÛ³Â¡A³Ìªñ¦p¦ó°Ú");
-                break;
-            case 1:
-                ShowText("ªÛ³Â", "«Ü¤£¿ù");
-                break;
-            case 2:
-                ShowText("¦Ñ¤H", "¤S¥h§ä§A¦Ñª¨¤@°_³¨³½¥h¤F?");
-                // ³o¸Ì­n¸õ¥X¿ï¶µ
-                optionA.gameObject.SetActive(true);
-                optionB.gameObject.SetActive(true);
-                optionA.GetComponentInChildren<Text>().text = "A. ¹ïªü ¤µ¤Ñ¥i¤£¯àªÅ¤â¦ÓÂk";
-                optionB.GetComponentInChildren<Text>().text = "B. °®§A§¾¨Æ°Ú ¦ÑªF¦è";
-                break;
-            case 3:
-                // µ²§ô©Î¦^À³
-                ShowText("¦Ñ¤H", "¨ş¨ş ¯¬§A¦n¹B");
-                break;
-            default:
-                EndConversation();
-                return;
+            case 0: ShowText("é»‘ç‹—", "æ±ªæ±ªæ±ªï¼"); break;
+            case 1: ShowText("èŠéº»", "..."); ShowOptions("[A] ä¹–ç‹—ç‹—", "[B] æ»¾é–‹"); break;
+            default: EndConversation(); break;
         }
     }
 
-    // «ö¶sÂIÀ»«á
-    void ChooseOption(int index)
+    // è€é ­åŠ‡æœ¬
+    void Script_OldMan()
     {
-        if (currentStep == 2) // ¦b¿ï¶µ¶¥¬q
+        int day = LevelManager.Instance.currentDay; // è®€å– Inspector è¨­å®šçš„å¤©æ•¸
+
+        if (day == 1)
         {
-            if (index == 0) // ¿ï A
+            switch (currentStep)
             {
-                currentStep = 3; // ¥h¤U¤@¥y
-                NextSentence();
+                case 0: ShowText("è€äºº", "ä¸­åˆå¥½ï¼ŒèŠéº»ï¼Œæœ€è¿‘å¦‚ä½•å•Š"); break;
+                case 1: ShowText("èŠéº»", "å¾ˆä¸éŒ¯"); break;
+                case 2: ShowText("è€äºº", "åˆå»æ‰¾ä½ è€çˆ¸ä¸€èµ·é‡£é­šå»äº†?"); ShowOptions("[A] å°é˜¿ ä»Šå¤©å¯ä¸èƒ½ç©ºæ‰‹è€Œæ­¸", "[B] ä¹¾ä½ å±äº‹å•Š è€æ±è¥¿"); break;
+                case 3: ShowText("è€äºº", "å‘µå‘µ ç¥ä½ å¥½é‹"); break;
+                default: EndConversation(); break;
             }
-            else // ¿ï B
+        }
+        else if (day == 2)
+        {
+            switch (currentStep)
             {
-                // ¦pªG¿ï B ¤]¬O¦P¤@¥y¦^ÂĞ¡A´N¤@¼Ë¥h 3
-                // ©ÎªÌ¬Oª½±µ¤£²nµ²§ô
-                EndConversation();
+                case 0: ShowText("è€äºº", "èŠéº»ï¼Œé€™å€‹çµ¦ä½ ï¼Œå‰›å‰›è·¯ä¸Šä¸€å€‹å¥‡æ€ªçš„äººçµ¦æˆ‘çš„ï¼Œé‚„å°æˆ‘èªªè–èª•ç¯€å¿«æ¨‚"); break;
+                case 1: ShowText("èŠéº»", "é…·"); break;
+                case 2: ShowText("èŠéº»", "ä½†ä½ è¦ç•™æ„ä¸€ä¸‹æ”¿åºœçš„å…¬å‘Šï¼Œæ‡‰è©²èªªè€¶èª•ç¯€å¿«æ¨‚"); break;
+                case 3: ShowText("èŠéº»", "æˆ‘æ”¶ä¸‹ä½ çš„å¥½æ„äº†"); break;
+                default: EndConversation(); break;
             }
         }
     }
 
-    // ÂIÀ»¹ï¸Ü®ØÄ~Äò (¦pªG¤£¬O¦b¿ï¿ï¶µ)
-    public void OnClickDialogueBox()
+    // è€çˆ¸åŠ‡æœ¬
+    void Script_Dad()
     {
-        // ¦pªG²{¦bÅã¥Ü¿ï¶µ¤¤¡AÂI¹ï¸Ü®ØµL®Ä
-        if (optionA.gameObject.activeSelf && currentStep == 2) return;
+        int day = LevelManager.Instance.currentDay;
 
-        // ¦pªG¤£¬O¿ï¶µ¶¥¬q¡A´NÄ~Äò
-        if (currentStep != 2)
+        if (day == 1)
         {
-            currentStep++;
-            NextSentence();
+            switch (currentStep)
+            {
+                case 0: ShowText("è€çˆ¸", "ä½ ä¾†äº†é˜¿"); break;
+                case 1: ShowText("è€çˆ¸", "ä½ çš„é­šç«¿åœ¨é€™è£¡"); break;
+                case 2: ShowText("èŠéº»", "é‡£é­šå–½"); break;
+                case 3: ShowText("è€çˆ¸", "å¥½äº†ï¼Œæ˜å¤©å†ä¾†å§ï¼Œä»Šå¤©æ”¶ç²ä¸éŒ¯"); break;
+                case 4: ShowText("èŠéº»", "å¥½å•Š"); break;
+                // Day 1 çµæŸï¼ŒEndConversation æœƒè§¸ç™¼æ›å ´æ™¯
+                default: EndConversation(); break;
+            }
+        }
+        else if (day == 2)
+        {
+            switch (currentStep)
+            {
+                case 0: ShowText("èŠéº»", "é€™äº›æ˜¯ä»€éº¼å•Šï¼Œå¤ªææ€–äº†å§"); break;
+                case 1: ShowText("çˆ¶è¦ª", "æˆ‘ä¹Ÿä¸çŸ¥é“ï¼Œé€™äº›é­šé•·çš„éƒ½è »é†œçš„"); break;
+                case 2: ShowText("çˆ¶è¦ª", "çœ‹çœ‹é€™é­šå›å»èƒ½ä¸èƒ½è³£å€‹å¥½åƒ¹éŒ¢"); break;
+                case 3: ShowText("èŠéº»", "æˆ‘è¦ºå¾—é€™äº›é­šå¯ä»¥ç›´æ¥ä¸Ÿå›å»"); break;
+                case 4: ShowText("çˆ¶è¦ª", "ä¸å¥½èªªï¼Œæä¸å¥½æ˜¯ç¨€æœ‰çš„é­š"); break;
+                // Day 2 é€™è£¡çµæŸå¾Œï¼Œæœƒè§¸ç™¼ã€Œæ™‚é–“è·³èºã€
+                default: EndConversation(); break;
+            }
         }
     }
 
-    void ShowText(string name, string content)
+    // è€çˆ¸ Day 2 ä¸‹åŠå ´
+    void Script_Dad_Day2_Part2()
     {
-        nameText.text = name;
-        bodyText.text = content;
+        switch (currentStep)
+        {
+            case 0: ShowText("çˆ¶è¦ª", "ä»Šå¤©æ”¶ç©«ä¸æ˜¯å¾ˆå¥½ï¼Œæ˜å¤©å†ä¾†æœ€å¾Œä¸€æ¬¡ï¼Œæˆ‘å€‘å°±æº–å‚™æ›åœ°é»å§"); break;
+            case 1: ShowText("èŠéº»", "å¥½"); break;
+            default: EndConversation(); break;
+        }
     }
 
+    void Script_Day1_Start()
+    {
+        switch (currentStep)
+        {
+            case 0: ShowText("èŠéº»", "ç¾å¥½çš„ä¸€å¤©å¾é‡£é­šé–‹å§‹"); break;
+            case 1: ShowText("èŠéº»", "æˆ‘è¨˜å¾—æ²’éŒ¯ï¼Œæ²¿è‘—é“è·¯ç„¶å¾Œå¾€å·¦èµ°å°±å¯ä»¥åˆ°æ²³é‚Šçœ‹åˆ°è€çˆ¸äº†"); break;
+            default: EndConversation(); break;
+        }
+    }
+
+    void Script_Day2_Start()
+    {
+        switch (currentStep)
+        {
+            case 0: ShowText("èŠéº»", "ä»Šå¤©å¤©æ°£æœ‰é»ç³Ÿç³•ï¼Œä½†ä¸å½±éŸ¿æˆ‘é‡£é­šçš„å¿ƒæƒ…"); break;
+            default: EndConversation(); break;
+        }
+    }
+
+    // --- å·¥å…·å€ ---
+    public void SetHoverState(bool showCircle)
+    {
+        if (isTalking) { if (outerCircleObject.activeSelf) outerCircleObject.SetActive(false); if (centerDotObject.activeSelf) centerDotObject.SetActive(false); return; }
+        if (outerCircleObject != null) outerCircleObject.SetActive(showCircle);
+        if (centerDotObject != null && !centerDotObject.activeSelf) centerDotObject.SetActive(true);
+    }
+
+    void ShowOptions(string textA, string textB) { if (optionA_Object) { optionA_Object.SetActive(true); optionA_Object.GetComponentInChildren<TMP_Text>().text = textA; } if (optionB_Object) { optionB_Object.SetActive(true); optionB_Object.GetComponentInChildren<TMP_Text>().text = textB; } }
+    void ChooseOption(int index) { currentStep++; NextSentence(); }
+    void ShowText(string name, string content) { nameText.text = name; bodyText.text = content; }
+
+    // æ ¸å¿ƒçµæŸæ§åˆ¶
     void EndConversation()
     {
         isTalking = false;
         dialoguePanel.SetActive(false);
-
-        // «ì´_²¾°Ê
         if (playerController != null) playerController.enabled = true;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-    }
+        if (centerDotObject) centerDotObject.SetActive(true);
 
-    // Åı«ö¶s©ÎÁô§Î«ö¶s©I¥s¥Î
-    public void ContinueButton()
-    {
-        if (!optionA.gameObject.activeSelf) // ¨S¿ï¶µ®É¤~¯àÂIÀ»Ä~Äò
+        int day = LevelManager.Instance.currentDay;
+
+        //è½‰å ´é‚è¼¯
+        if (conversationID == 2) // è€çˆ¸å°è©±çµæŸ
         {
-            currentStep++;
-            NextSentence();
+            if (day == 1)
+            {
+                // Day 1 çµæŸ -> è¼‰å…¥ä¸‹ä¸€å€‹å ´æ™¯
+                LevelManager.Instance.GoToNextLevel();
+            }
+            else if (day == 2)
+            {
+                // Day 2 ä¸ŠåŠå ´çµæŸ -> è§¸ç™¼æ™‚é–“è·³èº -> æ¥ä¸‹åŠå ´ (ID 21)
+                LevelManager.Instance.TriggerTimeSkip(21);
+            }
+        }
+        else if (conversationID == 21) // è€çˆ¸ Day 2 ä¸‹åŠå ´çµæŸ
+        {
+            // Day 2 çµæŸ -> è¼‰å…¥ä¸‹ä¸€å€‹å ´æ™¯ (Day 3)
+            LevelManager.Instance.GoToNextLevel();
         }
     }
 }

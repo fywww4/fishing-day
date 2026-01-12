@@ -16,22 +16,21 @@ public class LevelManager : MonoBehaviour
 
     [Header("關卡設定")]
     public int currentDay = 1;
-    public string nextSceneName;
+    public string nextSceneName; // 下一關場景名稱 (例如 Day2_Scene 或 Credits)
     public int startDialogueID = 10;
 
-    [Header("Day 3 特別物件控制 (請拖曳場景物件)")]
-    public GameObject dadObject;        // 老爸物件
-    public GameObject bloodStainObject; // 地板血跡 (觸發點)
-    public GameObject policeCarObject;  // 警車 (結局觸發點)
-    public GameObject bloodTrailObject; // 引導路徑的血跡 (裝飾)
+    [Header("Day 3 物件 (Day 3 場景才需要拖)")]
+    public GameObject dadObject;
+    public GameObject bloodStainObject;
+    public GameObject bloodTrailObject;
+    public GameObject policeCarObject;
 
     [Header("Day 3 進度狀態")]
-    // 0:剛開始, 1:拿到魚, 2:送完魚(老爸消失), 3:發現血跡
     public int day3Stage = 0;
 
     [Header("音效控制")]
     public AudioSource audioSource;
-    public AudioClip monsterScreamClip; // 怪物叫聲
+    public AudioClip monsterScreamClip;
 
     private void Awake()
     {
@@ -44,58 +43,76 @@ public class LevelManager : MonoBehaviour
         StartCoroutine(ShowDayRoutine("Day " + currentDay, startDialogueID));
 
         // 如果是 Day 3，初始化場景物件
-        if (currentDay == 3)
-        {
-            UpdateDay3WorldState(0);
-        }
+        if (currentDay == 3) UpdateDay3WorldState(0);
     }
 
-    // 外部呼叫：更新 Day 3 進度
+
+    // 1. 切換到下一個場景 (Day 1 -> Day 2)
+    public void GoToNextLevel()
+    {
+        StartCoroutine(LoadNextLevelRoutine());
+    }
+
+    // 2. 時間跳躍 (Day 2 下午 -> 傍晚)
+    public void TriggerTimeSkip(int nextDialogueID)
+    {
+        StartCoroutine(TimeSkipRoutine(nextDialogueID));
+    }
+
+
     public void SetDay3Stage(int stage)
     {
         day3Stage = stage;
         UpdateDay3WorldState(stage);
     }
 
-    // 控制物件顯隱
     void UpdateDay3WorldState(int stage)
     {
         if (currentDay != 3) return;
-
         switch (stage)
         {
-            case 0: // 剛開始：老爸在，沒血跡，沒警車
+            case 0:
                 if (dadObject) dadObject.SetActive(true);
                 if (bloodStainObject) bloodStainObject.SetActive(false);
-                if (policeCarObject) policeCarObject.SetActive(false);
                 if (bloodTrailObject) bloodTrailObject.SetActive(false);
+                if (policeCarObject) policeCarObject.SetActive(false);
                 break;
-            case 1: // 拿到魚：狀態不變
+            case 1: break; // 拿到魚
+            case 2: // 老爸消失，出現血跡
+                if (dadObject) dadObject.SetActive(false);
+                if (bloodStainObject) bloodStainObject.SetActive(true);
                 break;
-            case 2: // 送完魚：老爸消失，出現血跡
-                if (dadObject) dadObject.SetActive(false); // 老爸消失
-                if (bloodStainObject) bloodStainObject.SetActive(true); // 血跡觸發點出現
-                break;
-            case 3: // 檢查完血跡：出現警車與引導血跡
+            case 3: // 發現血跡，出現警車
                 if (bloodTrailObject) bloodTrailObject.SetActive(true);
                 if (policeCarObject) policeCarObject.SetActive(true);
                 break;
         }
     }
 
-    // 外部呼叫：觸發結局
     public void TriggerEnding()
     {
-        StartCoroutine(EndingRoutine());
+        StartCoroutine(EndingSequence());
     }
 
-    // --- 流程協程 ---
+    public void PlayMonsterSound()
+    {
+        if (audioSource && monsterScreamClip) audioSource.PlayOneShot(monsterScreamClip);
+    }
 
+    public void QuitGame()
+    {
+        Debug.Log("遊戲強制結束");
+        Application.Quit();
+    }
+
+
+    // 開場流程
     IEnumerator ShowDayRoutine(string text, int nextDialogueID = -1)
     {
         transitionPanel.SetActive(true);
         dayText.text = text;
         dayText.gameObject.SetActive(true);
+        dayText.color = Color.white;
 
         Image bg = transitionPanel.GetComponent<Image>();
         Color c = bg.color;
@@ -103,7 +120,6 @@ public class LevelManager : MonoBehaviour
         bg.color = c;
 
         yield return new WaitForSeconds(textStayDuration);
-
         dayText.gameObject.SetActive(false);
 
         float timer = 0f;
@@ -114,22 +130,18 @@ public class LevelManager : MonoBehaviour
             bg.color = c;
             yield return null;
         }
-
         c.a = 0f;
         bg.color = c;
         transitionPanel.SetActive(false);
 
-        if (nextDialogueID != -1)
-        {
-            DialogueManager.Instance.StartConversation(nextDialogueID);
-        }
+        if (nextDialogueID != -1) DialogueManager.Instance.StartConversation(nextDialogueID);
     }
 
+    // 換場景流程 (Day 1 -> Day 2)
     IEnumerator LoadNextLevelRoutine()
     {
         transitionPanel.SetActive(true);
         Image bg = transitionPanel.GetComponent<Image>();
-
         float timer = 0f;
         while (timer < fadeDuration)
         {
@@ -138,41 +150,84 @@ public class LevelManager : MonoBehaviour
             bg.color = new Color(0, 0, 0, alpha);
             yield return null;
         }
-
-        if (!string.IsNullOrEmpty(nextSceneName))
-            SceneManager.LoadScene(nextSceneName);
+        if (!string.IsNullOrEmpty(nextSceneName)) SceneManager.LoadScene(nextSceneName);
     }
 
-    //結局流程
-    IEnumerator EndingRoutine()
+    // 時間跳躍流程 (Day 2 專用)
+    IEnumerator TimeSkipRoutine(int nextDialogueID)
     {
-        // 1. 瞬間黑屏 (蹦!)
+        transitionPanel.SetActive(true);
+        Image bg = transitionPanel.GetComponent<Image>();
+
+        // 淡入黑屏
+        float timer = 0f;
+        while (timer < 1.0f)
+        {
+            timer += Time.deltaTime;
+            bg.color = new Color(0, 0, 0, Mathf.Lerp(0f, 1f, timer));
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(1.5f); // 模擬時間流逝
+
+        // 淡出黑屏
+        timer = 0f;
+        while (timer < 1.0f)
+        {
+            timer += Time.deltaTime;
+            bg.color = new Color(0, 0, 0, Mathf.Lerp(1f, 0f, timer));
+            yield return null;
+        }
+        transitionPanel.SetActive(false);
+
+        // 接續對話
+        DialogueManager.Instance.StartConversation(nextDialogueID);
+    }
+
+    // 結局演出流程 (Day 3 專用)
+    IEnumerator EndingSequence()
+    {
         transitionPanel.SetActive(true);
         Image bg = transitionPanel.GetComponent<Image>();
         bg.color = Color.black;
 
-        // 2. 開始播放結局對話 (ID 33)
-        // 注意：這裡我們不等待淡出，直接在黑屏下對話
-        DialogueManager.Instance.StartConversation(33);
+        dayText.gameObject.SetActive(true);
+        dayText.color = Color.white;
+        dayText.fontSize = 36;
 
-        // 等待對話結束 (這裡用一個簡單的檢查，或是依賴 DialogueManager 呼叫下一步)
-        // 但為了配合音效，我們可以在這裡寫死一些時間點，或者讓對話系統呼叫音效
-        yield return null;
-    }
+        dayText.text = "???：抓到同夥";
+        yield return new WaitForSeconds(2.5f);
 
-    // 播放怪物音效 (給 DialogueManager 呼叫)
-    public void PlayMonsterSound()
-    {
-        if (audioSource && monsterScreamClip)
+        dayText.text = "???：帶回去";
+        yield return new WaitForSeconds(2.0f);
+
+        dayText.text = "???：可是他只是一個小孩欸";
+        yield return new WaitForSeconds(2.5f);
+
+        dayText.text = "???：共匪不分年齡別忘記了";
+        yield return new WaitForSeconds(3.0f);
+
+        dayText.text = "???：等等那是什麼";
+        yield return new WaitForSeconds(1.5f);
+
+        if (audioSource && monsterScreamClip) audioSource.PlayOneShot(monsterScreamClip);
+
+        dayText.color = Color.red;
+        dayText.fontSize = 50;
+        dayText.text = "???：你不要過來啊!!!";
+
+        yield return new WaitForSeconds(4.0f);
+
+        dayText.text = "";
+
+        if (!string.IsNullOrEmpty(nextSceneName))
         {
-            audioSource.PlayOneShot(monsterScreamClip);
+            SceneManager.LoadScene(nextSceneName);
         }
-    }
-
-    // 真的結束遊戲
-    public void QuitGame()
-    {
-        Debug.Log("遊戲結束");
-        Application.Quit(); // 打包後才有效
+        else
+        {
+            Debug.Log("遊戲結束 (請設定 Next Scene Name 為 Credits)");
+            Application.Quit();
+        }
     }
 }

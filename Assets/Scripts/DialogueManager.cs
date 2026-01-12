@@ -21,6 +21,9 @@ public class DialogueManager : MonoBehaviour
     private int currentStep = 0;
     private int conversationID = 0;
 
+    private Color originalNameColor;
+    private Color originalBodyColor;
+
     public MonoBehaviour playerController;
 
     void Awake() { Instance = this; }
@@ -30,6 +33,9 @@ public class DialogueManager : MonoBehaviour
         dialoguePanel.SetActive(false);
         if (optionA_Object) optionA_Object.SetActive(false);
         if (optionB_Object) optionB_Object.SetActive(false);
+
+        if (nameText) originalNameColor = nameText.color;
+        if (bodyText) originalBodyColor = bodyText.color;
     }
 
     void Update()
@@ -66,6 +72,9 @@ public class DialogueManager : MonoBehaviour
         Cursor.visible = false;
         if (centerDotObject) centerDotObject.SetActive(false);
         if (outerCircleObject) outerCircleObject.SetActive(false);
+
+        ResetTextColor();
+
         NextSentence();
     }
 
@@ -77,20 +86,42 @@ public class DialogueManager : MonoBehaviour
         switch (conversationID)
         {
             case 0: Script_OldMan(); break;
+            case 1: Script_Dog(); break;
             case 2: Script_Dad(); break;
 
             case 10: Script_Day1_Start(); break;
             case 20: Script_Day2_Start(); break;
-            case 30: Script_Day3_Start(); break;
+            case 21: Script_Dad_Day2_Part2(); break;
 
+            case 30: Script_Day3_Start(); break;
             case 31: Script_Blood(); break;
             case 32: Script_Police(); break;
-            case 33: Script_Ending(); break;
         }
     }
 
     // --- 劇本區 ---
 
+    //狗狗劇本 (ID 1)
+    void Script_Dog()
+    {
+        switch (currentStep)
+        {
+            case 0:
+                ShowText("黑狗", "汪汪汪！");
+                break;
+            case 1:
+                ShowText("芝麻", "...");
+                ShowOptions("[A] 乖狗狗", "[B] 滾開");
+                break;
+            case 2:
+                // 選完後的反應 (這裡直接結束，你也可以根據選擇加反應)
+                EndConversation();
+                break;
+            default:
+                EndConversation();
+                break;
+        }
+    }
     // 老頭劇本
     void Script_OldMan()
     {
@@ -187,6 +218,16 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
+    void Script_Dad_Day2_Part2()
+    {
+        switch (currentStep)
+        {
+            case 0: ShowText("父親", "今天收穫不是很好，明天再來最後一次，我們就準備換地點吧"); break;
+            case 1: ShowText("芝麻", "好"); break;
+            default: EndConversation(); break;
+        }
+    }
+
     // Day 1 開場
     void Script_Day1_Start()
     {
@@ -240,27 +281,6 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    // 結局黑屏對話 (ID 33)
-    void Script_Ending()
-    {
-        switch (currentStep)
-        {
-            case 0: ShowText("???", "抓到同夥"); break;
-            case 1: ShowText("???", "帶回去"); break;
-            case 2: ShowText("???", "可是他只是一個小孩欸"); break;
-            case 3: ShowText("???", "共匪不分年齡別忘記了"); break;
-            case 4: ShowText("???", "等等那是什麼"); break;
-            case 5:
-                if (LevelManager.Instance) LevelManager.Instance.PlayMonsterSound();
-                ShowText("???", "你不要過來啊!!!");
-                break;
-            default:
-                if (LevelManager.Instance) LevelManager.Instance.QuitGame();
-                break;
-        }
-    }
-
-
     public void SetHoverState(bool showCircle)
     {
         // 1. 如果正在對話，強制隱藏所有準心
@@ -310,10 +330,18 @@ public class DialogueManager : MonoBehaviour
         bodyText.text = content;
     }
 
+    void ResetTextColor()
+    {
+        if (nameText) nameText.color = originalNameColor;
+        if (bodyText) bodyText.color = originalBodyColor;
+    }
+
     // 核心結束控制
     void EndConversation()
     {
-        if (conversationID == 33) return; // 結局不關 UI
+        if (conversationID == 33) return;
+
+        ResetTextColor();
 
         isTalking = false;
         dialoguePanel.SetActive(false);
@@ -322,19 +350,42 @@ public class DialogueManager : MonoBehaviour
         Cursor.visible = false;
         if (centerDotObject) centerDotObject.SetActive(true);
 
+        // --- 🔍 Debug 偵測區 ---
         int day = LevelManager.Instance.currentDay;
+        Debug.Log($"[對話結束] ID: {conversationID}, Day: {day}");
 
-        // ay 3 事件推進
+        // 🔥 Day 3 事件推進 🔥
         if (day == 3)
         {
-            if (conversationID == 2)
-                LevelManager.Instance.SetDay3Stage(1);
-            else if (conversationID == 0 && LevelManager.Instance.day3Stage == 1)
-                LevelManager.Instance.SetDay3Stage(2);
-            else if (conversationID == 31)
-                LevelManager.Instance.SetDay3Stage(3);
-            else if (conversationID == 32)
-                LevelManager.Instance.TriggerEnding();
+            Debug.Log("進入 Day 3 判斷區");
+            if (conversationID == 2) LevelManager.Instance.SetDay3Stage(1);
+            else if (conversationID == 0 && LevelManager.Instance.day3Stage == 1) LevelManager.Instance.SetDay3Stage(2);
+            else if (conversationID == 31) LevelManager.Instance.SetDay3Stage(3);
+            else if (conversationID == 32) LevelManager.Instance.TriggerEnding();
+        }
+        // Day 1 & 2 事件推進
+        else if (conversationID == 2) // 老爸對話結束
+        {
+            Debug.Log("進入老爸判斷區");
+            if (day == 1)
+            {
+                Debug.Log(">>> 觸發 Day 1 轉場指令！呼叫 GoToNextLevel");
+                LevelManager.Instance.GoToNextLevel();
+            }
+            else if (day == 2)
+            {
+                Debug.Log(">>> 觸發 Day 2 跳轉指令");
+                LevelManager.Instance.TriggerTimeSkip(21);
+            }
+        }
+        else if (conversationID == 21) // Day 2 下半場結束
+        {
+            Debug.Log(">>> 觸發 Day 2 結束轉場");
+            LevelManager.Instance.GoToNextLevel();
+        }
+        else
+        {
+            Debug.Log("沒有符合的轉場條件");
         }
     }
 }

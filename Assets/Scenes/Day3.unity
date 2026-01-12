@@ -2467,7 +2467,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: a89b476732cc65941b8434cb595b8dc2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1725640516}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a89b476732cc65941b8434cb595b8dc2, type: 3}
       insertIndex: -1
@@ -2545,6 +2548,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   dialogueID: 2
+--- !u!4 &216190506 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: a89b476732cc65941b8434cb595b8dc2, type: 3}
+  m_PrefabInstance: {fileID: 216190498}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &226719518
 GameObject:
   m_ObjectHideFlags: 0
@@ -9188,47 +9196,47 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 216190506}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalScale.x
-      value: 200
+      value: 200.00002
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalScale.y
-      value: 200
+      value: 200.00003
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalScale.z
-      value: 200
+      value: 200.00003
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 14.826
+      value: 0.30370715
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.863
+      value: 0.766
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 56.955006
+      value: -0.014029652
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.2867391
+      value: 0.4437363
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.619997
+      value: -0.89563507
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.34000528
+      value: -0.03034706
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.64635974
+      value: -0.0038632448
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -18426,6 +18434,13 @@ MonoBehaviour:
   currentDay: 3
   nextSceneName: Thanks
   startDialogueID: 30
+  dadObject: {fileID: 216190499}
+  bloodStainObject: {fileID: 0}
+  policeCarObject: {fileID: 0}
+  bloodTrailObject: {fileID: 0}
+  day3Stage: 0
+  audioSource: {fileID: 0}
+  monsterScreamClip: {fileID: 0}
 --- !u!1001 &1481591252
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21230,6 +21245,11 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f941b53e229b2384ba689e9749d67bdf, type: 3}
   m_PrefabInstance: {fileID: 1851182874}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1725640516 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 839032bfd1856b141bb5af88b7701497, type: 3}
+  m_PrefabInstance: {fileID: 781219606}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1727003492
 PrefabInstance:
@@ -26511,7 +26531,6 @@ SceneRoots:
   - {fileID: 1620510416}
   - {fileID: 188697955}
   - {fileID: 216190498}
-  - {fileID: 781219606}
   - {fileID: 1153542877}
   - {fileID: 1551526429}
   - {fileID: 1800818993}

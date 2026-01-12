@@ -82,6 +82,11 @@ public class DialogueManager : MonoBehaviour
 
             case 10: Script_Day1_Start(); break;
             case 20: Script_Day2_Start(); break;
+            case 30: Script_Day3_Start(); break;
+
+            case 31: Script_Blood(); break;      // 檢查血跡
+            case 32: Script_Police(); break;     // 檢查警車
+            case 33: Script_Ending(); break;     // 結局黑屏
 
             case 21: Script_Dad_Day2_Part2(); break;
         }
@@ -103,7 +108,8 @@ public class DialogueManager : MonoBehaviour
     // 老頭劇本
     void Script_OldMan()
     {
-        int day = LevelManager.Instance.currentDay; // 讀取 Inspector 設定的天數
+        int day = LevelManager.Instance.currentDay;
+        int stage = LevelManager.Instance.day3Stage; // Day 3 進度
 
         if (day == 1)
         {
@@ -125,6 +131,29 @@ public class DialogueManager : MonoBehaviour
                 case 2: ShowText("芝麻", "但你要留意一下政府的公告，應該說耶誕節快樂"); break;
                 case 3: ShowText("芝麻", "我收下你的好意了"); break;
                 default: EndConversation(); break;
+            }
+        }
+        else if (day == 3)
+        {
+            //Day 3
+            if (stage == 0) // 還沒找老爸
+            {
+                ShowText("芝麻", "(老頭在睡覺...)");
+            }
+            else if (stage == 1) // 拿到魚了，來送禮
+            {
+                switch (currentStep)
+                {
+                    case 0: ShowText("芝麻", "阿伯，這是給你的，我父親說要跟你分享"); break;
+                    case 1: ShowText("老頭", "喔，不用啦"); break;
+                    case 2: ShowText("芝麻", "沒事沒事，有福同享"); break;
+                    case 3: ShowText("老頭", "謝謝啦"); break;
+                    default: EndConversation(); break;
+                }
+            }
+            else // 送完禮後
+            {
+                ShowText("老頭", "(繼續睡覺...)");
             }
         }
     }
@@ -160,6 +189,17 @@ public class DialogueManager : MonoBehaviour
                 default: EndConversation(); break;
             }
         }
+        else if (day == 3)
+        {
+            // Day 3 邏輯
+            switch (currentStep)
+            {
+                case 0: ShowText("父親", "你來啦，剛剛我收穫不錯，今天可以來個最後收尾"); break;
+                case 1: ShowText("父親", "你幫我把這些拿去給小販的老闆，算是跟他分享一下我們的收穫"); break;
+                case 2: ShowText("芝麻", "(獲得了一些魚)"); break;
+                default: EndConversation(); break;
+            }
+        }
     }
 
     // 老爸 Day 2 下半場
@@ -192,21 +232,67 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    // --- 工具區 ---
-    public void SetHoverState(bool showCircle)
+    void Script_Day3_Start()
     {
-        if (isTalking) { if (outerCircleObject.activeSelf) outerCircleObject.SetActive(false); if (centerDotObject.activeSelf) centerDotObject.SetActive(false); return; }
-        if (outerCircleObject != null) outerCircleObject.SetActive(showCircle);
-        if (centerDotObject != null && !centerDotObject.activeSelf) centerDotObject.SetActive(true);
+        switch (currentStep)
+        {
+            case 0: ShowText("芝麻", "今天天氣還是很糟"); break;
+            default: EndConversation(); break;
+        }
     }
 
-    void ShowOptions(string textA, string textB) { if (optionA_Object) { optionA_Object.SetActive(true); optionA_Object.GetComponentInChildren<TMP_Text>().text = textA; } if (optionB_Object) { optionB_Object.SetActive(true); optionB_Object.GetComponentInChildren<TMP_Text>().text = textB; } }
+    void Script_Blood()
+    {
+        switch (currentStep)
+        {
+            case 0: ShowText("芝麻", "..."); break;
+            case 1: ShowText("芝麻", "老爸呢，跑哪去了"); break;
+            case 2: ShowText("芝麻", "地板好像有血跡，跟著血跡走好了"); break;
+            default: EndConversation(); break;
+        }
+    }
+
+    void Script_Police()
+    {
+        switch (currentStep)
+        {
+            case 0: ShowText("芝麻", "警察?"); break;
+            default: EndConversation(); break; // 結束後觸發結局
+        }
+    }
+
+    void Script_Ending()
+    {
+        switch (currentStep)
+        {
+            case 0: ShowText("???", "抓到同夥"); break;
+            case 1: ShowText("???", "帶回去"); break;
+            case 2: ShowText("???", "可是他只是一個小孩欸"); break;
+            case 3: ShowText("???", "共匪不分年齡別忘記了"); break;
+            case 4: ShowText("???", "等等那是什麼"); break;
+            case 5:
+                // 播放音效
+                if (LevelManager.Instance) LevelManager.Instance.PlayMonsterSound();
+                ShowText("???", "你不要過來啊!!!");
+                break;
+            default:
+                // 結束遊戲
+                if (LevelManager.Instance) LevelManager.Instance.QuitGame();
+                break;
+        }
+    }
+
+    // --- 工具區 ---
+    void ShowOptions(string textA, string textB) { /* 略 */ }
     void ChooseOption(int index) { currentStep++; NextSentence(); }
     void ShowText(string name, string content) { nameText.text = name; bodyText.text = content; }
 
     // 核心結束控制
     void EndConversation()
     {
+        // 結局對話結束，不需要關閉 UI，直接停住或退出
+        if (conversationID == 33) return;
+
         isTalking = false;
         dialoguePanel.SetActive(false);
         if (playerController != null) playerController.enabled = true;
@@ -216,24 +302,24 @@ public class DialogueManager : MonoBehaviour
 
         int day = LevelManager.Instance.currentDay;
 
-        //轉場邏輯
-        if (conversationID == 2) // 老爸對話結束
+        //Day 3 事件推進
+        if (day == 3)
         {
-            if (day == 1)
-            {
-                // Day 1 結束 -> 載入下一個場景
-                LevelManager.Instance.GoToNextLevel();
-            }
-            else if (day == 2)
-            {
-                // Day 2 上半場結束 -> 觸發時間跳躍 -> 接下半場 (ID 21)
-                LevelManager.Instance.TriggerTimeSkip(21);
-            }
-        }
-        else if (conversationID == 21) // 老爸 Day 2 下半場結束
-        {
-            // Day 2 結束 -> 載入下一個場景 (Day 3)
-            LevelManager.Instance.GoToNextLevel();
+            // 老爸講完話 -> 進度變 1 (去送魚)
+            if (conversationID == 2)
+                LevelManager.Instance.SetDay3Stage(1);
+
+            // 老頭收到魚 -> 進度變 2 (老爸消失，出血跡)
+            else if (conversationID == 0 && LevelManager.Instance.day3Stage == 1)
+                LevelManager.Instance.SetDay3Stage(2);
+
+            // 檢查完血跡 -> 進度變 3 (出警車)
+            else if (conversationID == 31)
+                LevelManager.Instance.SetDay3Stage(3);
+
+            // 檢查完警車 -> 觸發結局
+            else if (conversationID == 32)
+                LevelManager.Instance.TriggerEnding();
         }
     }
 }

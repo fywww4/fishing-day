@@ -6,59 +6,85 @@ public class FirstPersonController : MonoBehaviour
     public float moveSpeed = 5.0f;
 
     [Header("視角設定")]
-    public float mouseSensitivity = 100f; // 滑鼠靈敏度
-    public Transform playerCamera;        // 拖曳你的 Main Camera 到這裡
+    public float mouseSensitivity = 100f;
+    public Transform playerCamera;
 
     [Header("物理組件")]
     public Rigidbody rb;
 
-    private float xRotation = 0f; // 用來紀錄上下看的角度
+    [Header("腳步聲設定 (新功能)")]
+    public AudioSource footstepSource;    // 用來播聲音的喇叭
+    public AudioClip[] footstepSounds;    // 腳步聲素材 (可以用陣列放多個，隨機播比較自然)
+    public float stepInterval = 0.5f;     // 多久播一次 (跑步就調小，走路調大)
+    public float stepVolume = 0.5f;       // 音量大小
+
+    private float xRotation = 0f;
+    private float stepTimer = 0f;         // 內部計時器
 
     void Start()
     {
-        // 隱藏並鎖定滑鼠游標到螢幕中央 (FPS 遊戲標準設定)
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
         if (rb == null) rb = GetComponent<Rigidbody>();
-
-        // 確保剛體不會跌倒
         rb.freezeRotation = true;
     }
 
     void Update()
     {
-        // --- 1. 處理視角旋轉 (Mouse Look) ---
-
-        // 取得滑鼠移動量
+        // --- 1. 視角旋轉 (保持原本邏輯) ---
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
-        // 計算上下看的角度 (注意這裡是減法，因為滑鼠往上是負旋轉)
         xRotation -= mouseY;
-
-        // 限制抬頭低頭的角度 (像是人類頸椎極限，不能轉360度)
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
-        // A. 上下轉動：只轉動「攝影機」
         playerCamera.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
-
-        // B. 左右轉動：轉動整個「玩家身體」
         transform.Rotate(Vector3.up * mouseX);
 
-
-        // --- 2. 處理移動 (Movement) ---
-
-        // 取得鍵盤輸入
+        // --- 2. 移動邏輯 ---
         float x = Input.GetAxis("Horizontal"); // A, D
         float z = Input.GetAxis("Vertical");   // W, S
 
-        // 計算移動方向 (永遠相對於玩家目前的面向)
-        // transform.right 是右方，transform.forward 是前方
         Vector3 move = transform.right * x + transform.forward * z;
-
-        // 應用速度到剛體 (保留原本的 Y 軸重力速度)
         Vector3 finalVelocity = move * moveSpeed;
         rb.velocity = new Vector3(finalVelocity.x, rb.velocity.y, finalVelocity.z);
+
+        // --- 3. 腳步聲處理 (新功能) ---
+        HandleFootsteps(x, z);
     }
-}   
+
+    void HandleFootsteps(float xInput, float zInput)
+    {
+        // 如果玩家正在移動 (輸入不為 0) 且 腳步聲來源有設定
+        if ((Mathf.Abs(xInput) > 0.1f || Mathf.Abs(zInput) > 0.1f) && footstepSounds.Length > 0)
+        {
+            stepTimer -= Time.deltaTime; // 倒數計時
+
+            if (stepTimer <= 0)
+            {
+                PlayRandomFootstep();
+                stepTimer = stepInterval; // 重置計時器
+            }
+        }
+        else
+        {
+            // 如果停下來，重置計時器，這樣下次一動就會馬上播聲音
+            stepTimer = 0;
+        }
+    }
+
+    void PlayRandomFootstep()
+    {
+        if (footstepSource == null) return;
+
+        // 隨機選一個聲音 (避免聽起來像機器人)
+        int index = Random.Range(0, footstepSounds.Length);
+
+        // 微調音調 (Pitch)，讓每一步聽起來都有點不一樣，更真實
+        footstepSource.pitch = Random.Range(0.8f, 1.1f);
+
+        // 播放一次
+        footstepSource.PlayOneShot(footstepSounds[index], stepVolume);
+    }
+}

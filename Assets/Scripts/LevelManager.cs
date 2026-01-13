@@ -16,10 +16,10 @@ public class LevelManager : MonoBehaviour
 
     [Header("關卡設定")]
     public int currentDay = 1;
-    public string nextSceneName; 
+    public string nextSceneName;
     public int startDialogueID = 10;
 
-    [Header("Day 3 物件 (Day 3 場景才需要拖)")]
+    [Header("Day 3 物件")]
     public GameObject dadObject;
     public GameObject bloodStainObject;
     public GameObject bloodTrailObject;
@@ -30,7 +30,12 @@ public class LevelManager : MonoBehaviour
 
     [Header("音效控制")]
     public AudioSource audioSource;
-    public AudioClip monsterScreamClip;
+    public AudioClip hitSoundClip;
+
+    [Header("結局專用音效 (新功能)")]
+    public AudioClip mysteryVoiceClip;  // 神秘人講話的嘟嘟聲
+    public AudioClip chipEatClip;       // 吃洋芋片的搞笑聲音
+    public float typingSpeed = 0.05f;   // 打字速度
 
     private void Awake()
     {
@@ -39,26 +44,21 @@ public class LevelManager : MonoBehaviour
 
     void Start()
     {
-        // 遊戲開始，淡入並執行開場
         StartCoroutine(ShowDayRoutine("Day " + currentDay, startDialogueID));
-
-        // 如果是 Day 3，初始化場景物件
         if (currentDay == 3) UpdateDay3WorldState(0);
     }
 
+ 
 
-    // 1. 切換到下一個場景 (Day 1 -> Day 2)
     public void GoToNextLevel()
     {
         StartCoroutine(LoadNextLevelRoutine());
     }
 
-    // 2. 時間跳躍 (Day 2 下午 -> 傍晚)
     public void TriggerTimeSkip(int nextDialogueID)
     {
         StartCoroutine(TimeSkipRoutine(nextDialogueID));
     }
-
 
     public void SetDay3Stage(int stage)
     {
@@ -77,12 +77,12 @@ public class LevelManager : MonoBehaviour
                 if (bloodTrailObject) bloodTrailObject.SetActive(false);
                 if (policeCarObject) policeCarObject.SetActive(false);
                 break;
-            case 1: break; // 拿到魚
-            case 2: // 老爸消失，出現血跡
+            case 1: break;
+            case 2:
                 if (dadObject) dadObject.SetActive(false);
                 if (bloodStainObject) bloodStainObject.SetActive(true);
                 break;
-            case 3: // 發現血跡，出現警車
+            case 3:
                 if (bloodTrailObject) bloodTrailObject.SetActive(true);
                 if (policeCarObject) policeCarObject.SetActive(true);
                 break;
@@ -94,25 +94,103 @@ public class LevelManager : MonoBehaviour
         StartCoroutine(EndingSequence());
     }
 
-    public void PlayMonsterSound()
-    {
-        if (audioSource && monsterScreamClip) audioSource.PlayOneShot(monsterScreamClip);
-    }
-
     public void QuitGame()
     {
-        Debug.Log("遊戲強制結束");
-        Application.Quit();
+        if (!string.IsNullOrEmpty(nextSceneName))
+        {
+            SceneManager.LoadScene(nextSceneName);
+        }
+        else
+        {
+            Debug.Log("遊戲結束");
+            Application.Quit();
+        }
     }
 
+  
+    IEnumerator EndingSequence()
+    {
 
-    // 開場流程
+        // 1. 播放敲擊聲 (蹦！)
+        if (audioSource && hitSoundClip) audioSource.PlayOneShot(hitSoundClip);
+
+        // 瞬間黑屏
+        transitionPanel.SetActive(true);
+        Image bg = transitionPanel.GetComponent<Image>();
+        bg.color = Color.black;
+
+        dayText.gameObject.SetActive(true);
+
+        // 2. 開始播放結局對話
+        // 使用 yield return StartCoroutine(...) 等待打字打完，再等待閱讀時間
+
+        yield return StartCoroutine(TypewriterEffect("???：抓到同夥", Color.white, 36));
+        yield return new WaitForSeconds(1.5f); // 閱讀時間
+
+        yield return StartCoroutine(TypewriterEffect("???：帶回去", Color.white, 36));
+        yield return new WaitForSeconds(1.5f);
+
+        yield return StartCoroutine(TypewriterEffect("???：可是他只是一個小孩欸", Color.white, 36));
+        yield return new WaitForSeconds(1.5f);
+
+        yield return StartCoroutine(TypewriterEffect("???：共匪不分年齡別忘記了", Color.white, 36));
+        yield return new WaitForSeconds(2.0f);
+
+        yield return StartCoroutine(TypewriterEffect("???：等等那是什麼", Color.white, 36));
+        yield return new WaitForSeconds(0.5f);
+
+        // 3. 搞笑反轉：播放吃洋芋片聲音
+        if (audioSource && chipEatClip)
+        {
+            // 稍微改變音調讓咀嚼聲更有趣
+            audioSource.pitch = Random.Range(0.8f, 1.2f);
+            audioSource.PlayOneShot(chipEatClip);
+        }
+        yield return new WaitForSeconds(1.5f); // 讓玩家聽一下咀嚼聲
+
+
+        // 最後一句變紅色、字體變大
+        yield return StartCoroutine(TypewriterEffect("???：你不要過來啊!!!", Color.red, 60));
+
+        yield return new WaitForSeconds(3.0f);
+
+        dayText.text = "";
+        QuitGame();
+    }
+
+    //迷你打字機協程 (LevelManager 專用)
+    IEnumerator TypewriterEffect(string content, Color color, int fontSize)
+    {
+        dayText.text = ""; // 清空
+        dayText.color = color;
+        dayText.fontSize = fontSize;
+
+        foreach (char letter in content.ToCharArray())
+        {
+            dayText.text += letter;
+
+            // 播放語音 (如果有設定的話)
+            if (audioSource && mysteryVoiceClip && !string.IsNullOrWhiteSpace(letter.ToString()))
+            {
+                audioSource.pitch = Random.Range(0.9f, 1.1f); // 隨機音調
+                audioSource.PlayOneShot(mysteryVoiceClip);
+            }
+
+            yield return new WaitForSeconds(typingSpeed);
+        }
+    }
+
+    // ==========================================
+    // 其他協程 (Day1/Day2 用)
+    // ==========================================
+
     IEnumerator ShowDayRoutine(string text, int nextDialogueID = -1)
     {
         transitionPanel.SetActive(true);
         dayText.text = text;
         dayText.gameObject.SetActive(true);
         dayText.color = Color.white;
+        dayText.fontSize = 50; // Day X 字體大一點
 
         Image bg = transitionPanel.GetComponent<Image>();
         Color c = bg.color;
@@ -137,7 +215,6 @@ public class LevelManager : MonoBehaviour
         if (nextDialogueID != -1) DialogueManager.Instance.StartConversation(nextDialogueID);
     }
 
-    // 換場景流程 (Day 1 -> Day 2)
     IEnumerator LoadNextLevelRoutine()
     {
         transitionPanel.SetActive(true);
@@ -153,13 +230,11 @@ public class LevelManager : MonoBehaviour
         if (!string.IsNullOrEmpty(nextSceneName)) SceneManager.LoadScene(nextSceneName);
     }
 
-    // 時間跳躍流程 (Day 2 專用)
     IEnumerator TimeSkipRoutine(int nextDialogueID)
     {
         transitionPanel.SetActive(true);
         Image bg = transitionPanel.GetComponent<Image>();
 
-        // 淡入黑屏
         float timer = 0f;
         while (timer < 1.0f)
         {
@@ -168,9 +243,8 @@ public class LevelManager : MonoBehaviour
             yield return null;
         }
 
-        yield return new WaitForSeconds(1.5f); // 模擬時間流逝
+        yield return new WaitForSeconds(1.5f);
 
-        // 淡出黑屏
         timer = 0f;
         while (timer < 1.0f)
         {
@@ -179,55 +253,6 @@ public class LevelManager : MonoBehaviour
             yield return null;
         }
         transitionPanel.SetActive(false);
-
-        // 接續對話
         DialogueManager.Instance.StartConversation(nextDialogueID);
-    }
-
-    // 結局演出流程 (Day 3 專用)
-    IEnumerator EndingSequence()
-    {
-        transitionPanel.SetActive(true);
-        Image bg = transitionPanel.GetComponent<Image>();
-        bg.color = Color.black;
-
-        dayText.gameObject.SetActive(true);
-        dayText.color = Color.white;
-        dayText.fontSize = 36;
-
-        dayText.text = "???：抓到同夥";
-        yield return new WaitForSeconds(2.5f);
-
-        dayText.text = "???：帶回去";
-        yield return new WaitForSeconds(2.0f);
-
-        dayText.text = "???：可是他只是一個小孩欸";
-        yield return new WaitForSeconds(2.5f);
-
-        dayText.text = "???：共匪不分年齡別忘記了";
-        yield return new WaitForSeconds(3.0f);
-
-        dayText.text = "???：等等那是什麼";
-        yield return new WaitForSeconds(1.5f);
-
-        if (audioSource && monsterScreamClip) audioSource.PlayOneShot(monsterScreamClip);
-
-        dayText.color = Color.red;
-        dayText.fontSize = 50;
-        dayText.text = "???：你不要過來啊!!!";
-
-        yield return new WaitForSeconds(4.0f);
-
-        dayText.text = "";
-
-        if (!string.IsNullOrEmpty(nextSceneName))
-        {
-            SceneManager.LoadScene(nextSceneName);
-        }
-        else
-        {
-            Debug.Log("遊戲結束 (請設定 Next Scene Name 為 Credits)");
-            Application.Quit();
-        }
     }
 }

@@ -16,7 +16,7 @@ public class LevelManager : MonoBehaviour
 
     [Header("關卡設定")]
     public int currentDay = 1;
-    public string nextSceneName; // 下一關場景名稱 (例如 Day2_Scene 或 Credits)
+    public string nextSceneName; 
     public int startDialogueID = 10;
 
     [Header("Day 3 物件 (Day 3 場景才需要拖)")]

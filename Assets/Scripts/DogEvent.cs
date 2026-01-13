@@ -7,12 +7,10 @@ public class DogEvent : MonoBehaviour
     [Header("目標與參數")]
     public Transform player;
     public float stopDistance = 3.0f;
-    public GameObject dialogueUI;
 
-    [Header("視角鎖定設定 (新功能)")]
-    // 這裡可以拖曳狗的頭部骨架，或者留空(程式會自動抓頭頂)
+    [Header("視角鎖定設定")]
     public Transform lookAtTarget;
-    public float heightOffset = 0.5f; // 如果不拖物件，就用這個高度來補償
+    public float heightOffset = 0.5f;
 
     [Header("組件引用")]
     public NavMeshAgent agent;
@@ -20,13 +18,20 @@ public class DogEvent : MonoBehaviour
     public FirstPersonController playerScript;
     public Transform playerCamera;
 
+    [Header("音效設定 (新功能)")]
+    public AudioSource audioSource;   // 狗身上的喇叭
+    public AudioClip scaryMusicClip;  // 恐怖音樂檔案
+
     private bool hasTriggered = false;
 
+    // 當這個腳本被 StoryTrigger 開啟時，Start 會執行一次
     void Start()
     {
-        if (dialogueUI != null) dialogueUI.SetActive(false);
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (anim == null) anim = GetComponent<Animator>();
+
+        //新增：腳本一啟動 (代表玩家踩到機關了)，馬上播音樂
+        PlayMusic();
     }
 
     void Update()
@@ -48,41 +53,41 @@ public class DogEvent : MonoBehaviour
         }
     }
 
+    void PlayMusic()
+    {
+        if (audioSource != null && scaryMusicClip != null)
+        {
+            audioSource.clip = scaryMusicClip;
+            audioSource.loop = true; // 設為循環播放 (怕狗跑太久音樂停了)
+            audioSource.Play();      // 開始播放
+        }
+    }
+
     void TriggerStory()
     {
         hasTriggered = true;
 
-        // 停止移動
+        //新增：在對話開始前，卡掉音樂
+        if (audioSource != null)
+        {
+            audioSource.Stop();
+        }
+
+        // 停止移動與動畫
         if (agent != null) agent.isStopped = true;
         if (anim != null) anim.SetBool("IsRunning", false);
 
-        // 鎖定玩家操作
         if (playerScript != null) playerScript.enabled = false;
 
-        // --- 修正後的視角鎖定邏輯 ---
+        // 視角鎖定
         Vector3 targetPosition;
+        if (lookAtTarget != null) targetPosition = lookAtTarget.position;
+        else targetPosition = transform.position + Vector3.up * heightOffset;
 
-        if (lookAtTarget != null)
-        {
-            // 1. 如果你有指定要看「頭部骨架」，就看骨架
-            targetPosition = lookAtTarget.position;
-        }
-        else
-        {
-            // 2. 如果沒指定，就看「狗的腳底 + 往上墊高 0.5 公尺」
-            targetPosition = transform.position + Vector3.up * heightOffset;
-        }
-
-        // 計算方向
         Vector3 directionToDog = targetPosition - playerCamera.position;
-        // 瞬間轉頭
         playerCamera.rotation = Quaternion.LookRotation(directionToDog);
 
-        // 顯示 UI
-        if (dialogueUI != null) dialogueUI.SetActive(true);
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
+        // 呼叫對話 (ID 1 = 狗狗)
         DialogueManager.Instance.StartConversation(1);
     }
 }

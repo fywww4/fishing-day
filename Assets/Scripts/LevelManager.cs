@@ -30,12 +30,13 @@ public class LevelManager : MonoBehaviour
 
     [Header("音效控制")]
     public AudioSource audioSource;
-    public AudioClip hitSoundClip;
+    public AudioClip monsterScreamClip;
 
-    [Header("結局專用音效 (新功能)")]
-    public AudioClip mysteryVoiceClip;  // 神秘人講話的嘟嘟聲
-    public AudioClip chipEatClip;       // 吃洋芋片的搞笑聲音
-    public float typingSpeed = 0.05f;   // 打字速度
+    [Header("結局專用音效")]
+    public AudioClip hitSoundClip;
+    public AudioClip mysteryVoiceClip;
+    public AudioClip chipEatClip;
+    public float typingSpeed = 0.05f;
 
     private void Awake()
     {
@@ -47,8 +48,6 @@ public class LevelManager : MonoBehaviour
         StartCoroutine(ShowDayRoutine("Day " + currentDay, startDialogueID));
         if (currentDay == 3) UpdateDay3WorldState(0);
     }
-
- 
 
     public void GoToNextLevel()
     {
@@ -94,6 +93,11 @@ public class LevelManager : MonoBehaviour
         StartCoroutine(EndingSequence());
     }
 
+    public void PlayMonsterSound()
+    {
+        if (audioSource && monsterScreamClip) audioSource.PlayOneShot(monsterScreamClip);
+    }
+
     public void QuitGame()
     {
         if (!string.IsNullOrEmpty(nextSceneName))
@@ -107,50 +111,69 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-  
+    // ==========================================
+    // 結局演出流程 (修正 Day 3 閃現 Bug)
+    // ==========================================
+
     IEnumerator EndingSequence()
     {
+        // 1. 播放敲擊聲
+        if (audioSource && hitSoundClip)
+        {
+            audioSource.PlayOneShot(hitSoundClip);
+        }
 
-        // 1. 播放敲擊聲 (蹦！)
-        if (audioSource && hitSoundClip) audioSource.PlayOneShot(hitSoundClip);
-
-        // 瞬間黑屏
+        // 2. 瞬間黑屏
         transitionPanel.SetActive(true);
         Image bg = transitionPanel.GetComponent<Image>();
         bg.color = Color.black;
 
+        //修復關鍵：先清空文字，再打開物件！
+        dayText.text = "";
         dayText.gameObject.SetActive(true);
 
-        // 2. 開始播放結局對話
-        // 使用 yield return StartCoroutine(...) 等待打字打完，再等待閱讀時間
+        bool isEnglish = PlayerPrefs.GetInt("Language", 0) == 1;
 
-        yield return StartCoroutine(TypewriterEffect("???：抓到同夥", Color.white, 36));
-        yield return new WaitForSeconds(1.5f); // 閱讀時間
+        string t1 = isEnglish ? "???: Got the accomplice." : "???：抓到同夥";
+        string t2 = isEnglish ? "???: Take him in." : "???：帶回去";
+        string t3 = isEnglish ? "???: But he's just a kid!" : "???：可是他只是一個小孩欸";
+        string t4 = isEnglish ? "???: Don't forget, commie spies come in all ages." : "???：共匪不分年齡別忘記了";
+        string t5 = isEnglish ? "???: Wait, what the hell is that?" : "???：等等那是什麼";
+        string t6 = isEnglish ? "???: Stay away!!!" : "???：你不要過來啊!!!";
 
-        yield return StartCoroutine(TypewriterEffect("???：帶回去", Color.white, 36));
+        // 3. 等待 (被敲暈的空白期)
+        yield return new WaitForSeconds(1.0f);
+
+        // 4. 開始對話
+        yield return StartCoroutine(TypewriterEffect(t1, Color.white, 36));
         yield return new WaitForSeconds(1.5f);
 
-        yield return StartCoroutine(TypewriterEffect("???：可是他只是一個小孩欸", Color.white, 36));
+        yield return StartCoroutine(TypewriterEffect(t2, Color.white, 36));
         yield return new WaitForSeconds(1.5f);
 
-        yield return StartCoroutine(TypewriterEffect("???：共匪不分年齡別忘記了", Color.white, 36));
+        yield return StartCoroutine(TypewriterEffect(t3, Color.white, 36));
+        yield return new WaitForSeconds(1.5f);
+
+        yield return StartCoroutine(TypewriterEffect(t4, Color.white, 36));
         yield return new WaitForSeconds(2.0f);
 
-        yield return StartCoroutine(TypewriterEffect("???：等等那是什麼", Color.white, 36));
+        yield return StartCoroutine(TypewriterEffect(t5, Color.white, 36));
         yield return new WaitForSeconds(0.5f);
 
-        // 3. 搞笑反轉：播放吃洋芋片聲音
         if (audioSource && chipEatClip)
         {
-            // 稍微改變音調讓咀嚼聲更有趣
             audioSource.pitch = Random.Range(0.8f, 1.2f);
             audioSource.PlayOneShot(chipEatClip);
         }
-        yield return new WaitForSeconds(1.5f); // 讓玩家聽一下咀嚼聲
+        yield return new WaitForSeconds(1.5f);
 
+        if (audioSource && monsterScreamClip)
+        {
+            audioSource.pitch = 1.0f;
+            audioSource.PlayOneShot(monsterScreamClip);
+        }
 
-        // 最後一句變紅色、字體變大
-        yield return StartCoroutine(TypewriterEffect("???：你不要過來啊!!!", Color.red, 60));
+        yield return StartCoroutine(TypewriterEffect(t6, Color.red, 60));
 
         yield return new WaitForSeconds(3.0f);
 
@@ -158,10 +181,9 @@ public class LevelManager : MonoBehaviour
         QuitGame();
     }
 
-    //迷你打字機協程 (LevelManager 專用)
     IEnumerator TypewriterEffect(string content, Color color, int fontSize)
     {
-        dayText.text = ""; // 清空
+        dayText.text = "";
         dayText.color = color;
         dayText.fontSize = fontSize;
 
@@ -169,10 +191,9 @@ public class LevelManager : MonoBehaviour
         {
             dayText.text += letter;
 
-            // 播放語音 (如果有設定的話)
             if (audioSource && mysteryVoiceClip && !string.IsNullOrWhiteSpace(letter.ToString()))
             {
-                audioSource.pitch = Random.Range(0.9f, 1.1f); // 隨機音調
+                audioSource.pitch = Random.Range(0.9f, 1.1f);
                 audioSource.PlayOneShot(mysteryVoiceClip);
             }
 
@@ -180,9 +201,7 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    // ==========================================
-    // 其他協程 (Day1/Day2 用)
-    // ==========================================
+    // --- 其他協程 ---
 
     IEnumerator ShowDayRoutine(string text, int nextDialogueID = -1)
     {
@@ -190,7 +209,7 @@ public class LevelManager : MonoBehaviour
         dayText.text = text;
         dayText.gameObject.SetActive(true);
         dayText.color = Color.white;
-        dayText.fontSize = 50; // Day X 字體大一點
+        dayText.fontSize = 50;
 
         Image bg = transitionPanel.GetComponent<Image>();
         Color c = bg.color;

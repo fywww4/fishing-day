@@ -1,52 +1,89 @@
 using UnityEngine;
-using UnityEngine.SceneManagement; // 用來切換場景
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using TMPro;
 
 public class MenuManager : MonoBehaviour
 {
     [Header("場景設定")]
-    public string firstLevelName = "Day1_Scene"; // 第一關場景名稱
-    public string creditsSceneName = "Credits";  //新增：製作人員名單場景名稱
+    public string firstLevelName = "Day1_Scene";
+    public string creditsSceneName = "Credits";
 
     [Header("UI 面板")]
-    public GameObject settingsPanel; // 設定面板 (齒輪)
+    public GameObject settingsPanel;
+
+    [Header("語言設定")]
+    public TMP_Text languageButtonText;
+
+    [Header("靈敏度設定")]
+    public Slider sensitivitySlider;      // 把 Slider 拖進來
+    public TMP_Text sensitivityValueText; // (選用) 顯示數值的文字
 
     void Start()
     {
-        // 確保滑鼠可見
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
         if (settingsPanel) settingsPanel.SetActive(false);
+
+        UpdateLanguageButtonText();
+        
+        // 讀取存檔的靈敏度，並更新滑桿位置
+        // 預設值 100 (如果不喜歡太快，可以把這裡的 100 改小一點，例如 50)
+        float savedSens = PlayerPrefs.GetFloat("Sensitivity", 100f);
+
+        // 防呆：如果讀出來是 0，強制改成 100
+        if (savedSens <= 1f) savedSens = 100f;
+
+        if (sensitivitySlider)
+        {
+            sensitivitySlider.value = savedSens;
+            UpdateSensitivityText(savedSens);
+        }
     }
 
-    // --- 按鈕功能 ---
-
-    public void StartGame()
+    // --- 靈敏度功能 (綁定給 Slider 的 OnValueChanged) ---
+    public void SetSensitivity(float val)
     {
-        SceneManager.LoadScene(firstLevelName);
+        // 1. 存檔
+        PlayerPrefs.SetFloat("Sensitivity", val);
+        PlayerPrefs.Save();
+
+        // 2. 更新文字顯示
+        UpdateSensitivityText(val);
     }
 
-    //修改：直接載入 Credits 場景
-    public void OpenCredits()
+    void UpdateSensitivityText(float val)
     {
-        SceneManager.LoadScene(creditsSceneName);
+        if (sensitivityValueText)
+        {
+            sensitivityValueText.text = Mathf.RoundToInt(val).ToString();
+        }
     }
 
-    public void QuitGame()
+    // --- 語言切換功能 ---
+    public void ToggleLanguage()
     {
-        Debug.Log("退出遊戲");
-        Application.Quit();
+        int currentLang = PlayerPrefs.GetInt("Language", 0);
+        int newLang = (currentLang == 0) ? 1 : 0;
+        PlayerPrefs.SetInt("Language", newLang);
+        PlayerPrefs.Save();
+        UpdateLanguageButtonText();
     }
 
-    // 設定頁面控制
-    public void OpenSettings()
+    void UpdateLanguageButtonText()
     {
-        if (settingsPanel) settingsPanel.SetActive(true);
+        if (languageButtonText)
+        {
+            int lang = PlayerPrefs.GetInt("Language", 0);
+            languageButtonText.text = (lang == 0) ? "語言: 中文" : "Language: English";
+        }
     }
 
-    public void CloseSettings()
-    {
-        if (settingsPanel) settingsPanel.SetActive(false);
-    }
+    // --- 其他按鈕功能 ---
+    public void StartGame() { SceneManager.LoadScene(firstLevelName); }
+    public void OpenCredits() { SceneManager.LoadScene(creditsSceneName); }
+    public void QuitGame() { Application.Quit(); }
+    public void OpenSettings() { if (settingsPanel) settingsPanel.SetActive(true); }
+    public void CloseSettings() { if (settingsPanel) settingsPanel.SetActive(false); }
 }

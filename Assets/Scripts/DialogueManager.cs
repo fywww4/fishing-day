@@ -269,7 +269,7 @@ public class DialogueManager : MonoBehaviour
             {
                 case 0: ShowText(dad, GetText("你來了阿", "You made it.")); break;
                 case 1: ShowText(dad, GetText("你的魚竿在這裡", "Here's your fishing rod.")); break;
-                case 2: ShowText(sesame, GetText("釣魚喽", "Let's fish!")); break;
+                case 2: ShowText(sesame, GetText("釣魚囉", "Let's fish!")); break;
                 case 3: ShowText(dad, GetText("差不多了，明天再來吧，回去吃飯了阿", "That's about it. Let's come back tomorrow. Time to eat.")); break;
                 case 4: ShowText(sesame, GetText("好啊", "Sure.")); break;
                 default: EndConversation(); break;

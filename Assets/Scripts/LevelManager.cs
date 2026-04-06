@@ -45,7 +45,8 @@ public class LevelManager : MonoBehaviour
 
     void Start()
     {
-        StartCoroutine(ShowDayRoutine("Day " + currentDay, startDialogueID));
+        string dayDisplayText = (currentDay == 4) ? "???" : "Day " + currentDay;
+        StartCoroutine(ShowDayRoutine(dayDisplayText, startDialogueID));
         if (currentDay == 3) UpdateDay3WorldState(0);
     }
 
@@ -178,7 +179,8 @@ public class LevelManager : MonoBehaviour
         yield return new WaitForSeconds(3.0f);
 
         dayText.text = "";
-        QuitGame();
+
+        SceneManager.LoadScene("Home");
     }
 
     IEnumerator TypewriterEffect(string content, Color color, int fontSize)

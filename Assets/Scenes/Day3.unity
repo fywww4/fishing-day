@@ -7398,7 +7398,7 @@ MonoBehaviour:
   fadeDuration: 2
   textStayDuration: 2
   currentDay: 3
-  nextSceneName: Credits
+  nextSceneName: Home
   startDialogueID: 30
   dadObject: {fileID: 216190499}
   bloodStainObject: {fileID: 1639736331}

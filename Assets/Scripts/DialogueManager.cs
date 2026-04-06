@@ -138,6 +138,9 @@ public class DialogueManager : MonoBehaviour
             case 31: Script_Blood(); break;
             case 32: Script_Police(); break;
             case 33: Script_Ending(); break;
+
+            case 40: Script_Home_Start(); break;
+            case 45: Script_Keypad(); break;
         }
     }
 
@@ -341,6 +344,16 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
+    void Script_Home_Start()
+    {
+        switch (currentStep)
+        {
+            case 0: ShowText(GetText("芝麻", "Sesame"), GetText("這裡是哪裡啊", "Where am I?")); break;
+            default: EndConversation(); break;
+        }
+    }
+
+
     void Script_Blood()
     {
         string sesame = GetText("芝麻", "Sesame");
@@ -382,6 +395,21 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
+    void Script_Keypad()
+    {
+    string sesame = GetText("芝麻", "Sesame");
+    switch (currentStep)
+        {
+        case 0: ShowText(sesame, GetText("這個電子鎖...好像需要輸入4位數的密碼。", "This lock... seems to require a 4-digit code.")); break;
+        case 1: ShowText(sesame, GetText("這張紙寫說，找到畫，會有答案的", "The note says that finding the painting will provide the answer."));break;
+        default: 
+            EndConversation(); 
+            KeypadController keypad = FindObjectOfType<KeypadController>();
+            if (keypad != null) keypad.OpenKeypad();
+            break;
+        }
+    }   
+
     // --- 工具區 ---
 
     public void SetHoverState(bool showCircle)
@@ -399,5 +427,39 @@ public class DialogueManager : MonoBehaviour
     void ShowOptions(string textA, string textB) { if (optionA_Object) { optionA_Object.SetActive(true); optionA_Object.GetComponentInChildren<TMP_Text>().text = textA; } if (optionB_Object) { optionB_Object.SetActive(true); optionB_Object.GetComponentInChildren<TMP_Text>().text = textB; } }
     void ChooseOption(int index) { currentStep++; NextSentence(); }
     void ResetTextColor() { if (nameText) nameText.color = originalNameColor; if (bodyText) bodyText.color = originalBodyColor; }
-    void EndConversation() { if (conversationID == 33) return; ResetTextColor(); isTalking = false; dialoguePanel.SetActive(false); if (playerController != null) playerController.enabled = true; Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; if (centerDotObject) centerDotObject.SetActive(true); int day = LevelManager.Instance.currentDay; if (day == 3) { if (conversationID == 2) LevelManager.Instance.SetDay3Stage(1); else if (conversationID == 0 && LevelManager.Instance.day3Stage == 1) LevelManager.Instance.SetDay3Stage(2); else if (conversationID == 31) LevelManager.Instance.SetDay3Stage(3); else if (conversationID == 32) LevelManager.Instance.TriggerEnding(); } else if (day == 2) { if (conversationID == 2) LevelManager.Instance.TriggerTimeSkip(21); else if (conversationID == 21) LevelManager.Instance.GoToNextLevel(); } else if (day == 1) { if (conversationID == 2) LevelManager.Instance.GoToNextLevel(); } }
+    void EndConversation() 
+    { 
+        if (conversationID == 33) return; 
+        
+        ResetTextColor(); 
+        isTalking = false; 
+        dialoguePanel.SetActive(false); 
+        
+        if (playerController != null) playerController.enabled = true; 
+        Cursor.lockState = CursorLockMode.Locked; 
+        Cursor.visible = false; 
+        if (centerDotObject) centerDotObject.SetActive(true);
+
+        // 🌟 防呆安全鎖：如果沒有 LevelManager，或是這是密碼鎖 (ID 45)，就直接結束！🌟
+        if (centerDotObject != null && conversationID != 45)
+        {
+            centerDotObject.SetActive(true);
+        }
+
+        int day = LevelManager.Instance.currentDay; 
+        
+        if (day == 3) { 
+            if (conversationID == 2) LevelManager.Instance.SetDay3Stage(1); 
+            else if (conversationID == 0 && LevelManager.Instance.day3Stage == 1) LevelManager.Instance.SetDay3Stage(2); 
+            else if (conversationID == 31) LevelManager.Instance.SetDay3Stage(3); 
+            else if (conversationID == 32) LevelManager.Instance.TriggerEnding(); // 💡 這裡是你原本 Day 3 結束的觸發點
+        } 
+        else if (day == 2) { 
+            if (conversationID == 2) LevelManager.Instance.TriggerTimeSkip(21); 
+            else if (conversationID == 21) LevelManager.Instance.GoToNextLevel(); 
+        } 
+        else if (day == 1) { 
+            if (conversationID == 2) LevelManager.Instance.GoToNextLevel(); 
+        } 
+    }
 }

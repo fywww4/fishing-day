@@ -3,66 +3,74 @@ using UnityEngine;
 public class PlayerInteract : MonoBehaviour
 {
     public float interactDistance = 3f;
-    public LayerMask interactLayer; // 設定 NPC 的 Layer
+    public LayerMask interactLayer;
 
     void Update()
     {
+        // 1. 如果密碼鎖 UI 開著，滑鼠是用來點按鈕的，直接收工
         if (KeypadController.Instance != null && KeypadController.Instance.keypadUI.activeSelf)
         {
             return;
         }
 
-        KeypadController keypad = FindObjectOfType<KeypadController>();
-        if (keypad != null && keypad.keypadUI.activeSelf) 
-        {
-            // 既然 UI 開著，我們就強行關閉準心並結束偵測
-            DialogueManager.Instance.SetHoverState(false);
-            return; 
-        }
-        // 1. 準備一條射線，從螢幕正中心射出去
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         RaycastHit hit;
-
-        // 預設我們「沒看到」可互動的物件
         bool seeInteractable = false;
 
-        // 2. 發射射線！
         if (Physics.Raycast(ray, out hit, interactDistance))
         {
-            // 如果打到的物件 Layer 是 NPC (密碼鎖現在也用這個 Layer)
+
+            PlankInteract plank = hit.collider.GetComponent<PlankInteract>();
+            if (plank != null)
+            {
+                //只有在「拿著槌子」的情況下，準心外圈才會跑出來！
+                if (HammerTool.IsHoldingHammer)
+                {
+                    seeInteractable = true;
+                    if (Input.GetMouseButtonDown(0))
+                    {
+                        plank.BreakPlank();
+                    }
+                }
+            }
+
+            // 確保打到的物件是在 NPC Layer (槌子和密碼鎖模型都要設為這個 Layer)
             if (hit.collider.gameObject.layer == LayerMask.NameToLayer("NPC"))
             {
-                seeInteractable = true; // 標記為看到了，讓準心變化
+                seeInteractable = true;
 
-                // 如果按左鍵
                 if (Input.GetMouseButtonDown(0))
                 {
-                    // ? 檢查一：它是 NPC 嗎？
-                    NPCData data = hit.collider.GetComponent<NPCData>();
-                    if (data != null)
+                    // 優先級 1：檢查是不是槌子
+                    HammerTool hammer = hit.collider.GetComponent<HammerTool>();
+                    if (hammer != null)
                     {
-                        DialogueManager.Instance.StartConversation(data.dialogueID);
+                        Transform myHand = GameObject.Find("HandAnchor").transform;
+                        hammer.PickUp(myHand);
+                        // 撿起後直接結束這次點擊，不往下跑
+                        DialogueManager.Instance.SetHoverState(false);
+                        return;
                     }
-                    else
+
+                    // 優先級 2：檢查是不是電子鎖 (模型上的 KeypadController)
+                    KeypadController targetKeypad = hit.collider.GetComponent<KeypadController>();
+                    if (targetKeypad != null)
                     {
-                        // ? 檢查二：它是密碼鎖嗎？ (新增這段)
-                        KeypadController Keypad = hit.collider.GetComponent<KeypadController>();
-                        if (keypad != null)
-                        {
-                            // 如果是密碼鎖，呼叫密碼鎖的 Interact 功能 (觸發 ID 40)
-                            keypad.Interact();
-                        }
-                        else
-                        {
-                            // 什麼都沒掛的預設值 (老人)
-                            DialogueManager.Instance.StartConversation(0);
-                        }
+                        targetKeypad.Interact();
+                        return;
+                    }
+
+                    // 優先級 3：NPC 對話
+                    NPCData npc = hit.collider.GetComponent<NPCData>();
+                    if (npc != null)
+                    {
+                        DialogueManager.Instance.StartConversation(npc.dialogueID);
+                        return;
                     }
                 }
             }
         }
-        
-        // 更新準心狀態 (看有沒有碰到可互動的物件)
+
         DialogueManager.Instance.SetHoverState(seeInteractable);
     }
 }

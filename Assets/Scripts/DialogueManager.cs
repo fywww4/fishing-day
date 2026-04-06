@@ -141,6 +141,7 @@ public class DialogueManager : MonoBehaviour
 
             case 40: Script_Home_Start(); break;
             case 45: Script_Keypad(); break;
+            case 46: Script_HammerPickUp(); break;
         }
     }
 
@@ -408,7 +409,21 @@ public class DialogueManager : MonoBehaviour
             if (keypad != null) keypad.OpenKeypad();
             break;
         }
-    }   
+    }
+
+    void Script_HammerPickUp()
+    {
+        string sesame = GetText("芝麻", "Sesame");
+        switch (currentStep)
+        {
+            case 0:
+                ShowText(sesame, GetText("這把槌子...看起來可以把門上的木板給敲掉。", "This hammer... looks like it can break the boards on the door."));
+                break;
+            default:
+                EndConversation();
+                break;
+        }
+    }
 
     // --- 工具區 ---
 
@@ -440,11 +455,7 @@ public class DialogueManager : MonoBehaviour
         Cursor.visible = false; 
         if (centerDotObject) centerDotObject.SetActive(true);
 
-        // 🌟 防呆安全鎖：如果沒有 LevelManager，或是這是密碼鎖 (ID 45)，就直接結束！🌟
-        if (centerDotObject != null && conversationID != 45)
-        {
-            centerDotObject.SetActive(true);
-        }
+        if (LevelManager.Instance == null || conversationID == 45 || conversationID == 46) return;
 
         int day = LevelManager.Instance.currentDay; 
         

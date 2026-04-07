@@ -16429,7 +16429,7 @@ MonoBehaviour:
   m_text: Day 1
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: dc1f075a70012c04aa6e9d5079c63a9c, type: 2}
-  m_sharedMaterial: {fileID: -1073603906733097045, guid: 39213770b60fc5b469b4d807d468765e, type: 2}
+  m_sharedMaterial: {fileID: 498982167533363130, guid: dc1f075a70012c04aa6e9d5079c63a9c, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

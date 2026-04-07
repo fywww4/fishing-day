@@ -5,6 +5,7 @@ public class KeypadController : MonoBehaviour
 {
 
     public static KeypadController Instance;
+    public bool isSolved = false;
 
     [Header("UI 設定")]
     public GameObject keypadUI;       // 記得把你的 Panel 拖拉到這個欄位裡！
@@ -75,19 +76,15 @@ public class KeypadController : MonoBehaviour
     {
         if (currentInput == correctPassword)
         {
-            displayScreen.text = "解鎖成功！";
-            displayScreen.color = Color.green; 
-            
-            // 延遲一下讓玩家看到成功，然後自動關閉介面
-            Invoke("CloseKeypad", 1.5f); 
-            // 💡 這裡之後可以加入開門的程式碼...
+            isSolved = true; // 🌟 密碼正確，標記為成功！
+            displayScreen.text = "OPEN";
+            // 這裡可以加個開鎖成功的音效
+            Invoke("CloseKeypad", 1f);
         }
         else
         {
-            displayScreen.text = "密碼錯誤！";
-            displayScreen.color = Color.red; 
-            currentInput = ""; 
-            Invoke("ResetScreen", 1.5f); 
+            currentInput = "";
+            displayScreen.text = "ERROR";
         }
     }
 
@@ -103,4 +100,6 @@ public class KeypadController : MonoBehaviour
         displayScreen.text = "";
         displayScreen.color = Color.white;
     }
+
+
 }

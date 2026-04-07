@@ -1,7 +1,8 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
+﻿using System.Collections;
 using TMPro;
-using System.Collections;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class DialogueManager : MonoBehaviour
 {
@@ -140,14 +141,24 @@ public class DialogueManager : MonoBehaviour
             case 33: Script_Ending(); break;
 
             case 40: Script_Home_Start(); break;
+            case 41: Door_locked(); break;
             case 45: Script_Keypad(); break;
             case 46: Script_HammerPickUp(); break;
+            case 47: Script_Key(); break;
+            case 48: Script_PaintingTooHigh(); break;
+            case 49: Script_EndingDialogue(); break;
         }
     }
 
     // --- 顯示文字 (打字機核心) ---
     void ShowText(string name, string content)
     {
+        if (conversationID == 49 || conversationID == 33)
+        {
+            UseFullScreenMode(name, content);
+            return;
+        }
+
         nameText.text = name;
         currentFullText = content;
 
@@ -350,6 +361,8 @@ public class DialogueManager : MonoBehaviour
         switch (currentStep)
         {
             case 0: ShowText(GetText("芝麻", "Sesame"), GetText("這裡是哪裡啊", "Where am I?")); break;
+            case 1: ShowText(GetText("芝麻", "Sesame"), GetText("我怎麼會在這裡啊", "How did I even get here?")); break;
+            case 2: ShowText(GetText("芝麻", "Sesame"), GetText("我得趕緊離開這裡", "I need to get out of here. Fast.")); break;
             default: EndConversation(); break;
         }
     }
@@ -396,6 +409,61 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
+    void Door_locked()
+    {
+        string sesame = GetText("芝麻", "Sesame");
+        switch (currentStep)
+        {
+            case 0: ShowText(sesame, GetText("門被鎖住了...", "The door's locked...")); break;
+            case 1: ShowText(sesame, GetText("看來需要把旁邊的密碼鎖解除、鎖頭拆掉、木板敲掉", "It looks like I need to unlock the keypad, remove the padlock, and break the wooden boards first.")); break;
+            default: EndConversation(); break;
+        }
+    }
+
+    void Script_EndingDialogue()
+    {
+        if (LevelManager.Instance != null)
+        {
+            LevelManager.Instance.dayText.fontSize = 30;
+        }
+
+        SetEndingUIMode(true);
+
+        nameText.color = Color.white;
+        bodyText.color = Color.white;
+        string Bread = "Bread : "; // 配合你的變數名稱
+
+        switch (currentStep)
+        {
+            case 0: ShowText("", Bread + GetText("你逃出來了", "You finally made it out.")); break;
+            case 1: ShowText("", Bread + GetText("這一切發生得很突然", "It all happened so suddenly.")); break;
+            case 2: ShowText("", Bread + GetText("你不停地跑著，直到看見一家商店", "You kept running until you stumbled upon a shop.")); break;
+            case 3: ShowText("", Bread + GetText("你向店老闆尋求幫助", "You begged the shopkeeper for help.")); break;
+            case 4: ShowText("", Bread + GetText("老闆隨即幫你報了警", "The shopkeeper immediately called the police for you.")); break;
+            case 5: ShowText("", Bread + GetText("警察很快趕到了現場", "The police arrived at the scene shortly after.")); break;
+            case 6: ShowText("", Bread + GetText("你向警察說明了事情的經過", "You explained everything that had happened to the police.")); break;
+            case 7: ShowText("", Bread + GetText("警察做完初步調查後", "After the police finished their initial investigation...")); break;
+            case 8: ShowText("", Bread + GetText("通知了你的家屬前來接你", "They contacted your family to come and pick you up.")); break;
+            case 9: ShowText("", Bread + GetText("沒過多久，你父親來接你了", "Before long, your father arrived to take you home.")); break;
+            case 10: ShowText("", Bread + GetText("聽完你的遭遇後，父親向你說明當時情況", "After hearing about your ordeal, Father explained what really happened back then.")); break;
+            case 11: ShowText("", Bread + GetText("當時他確實被誤認為是匪諜而被帶走", "He was indeed taken away back then after being mistaken for a spy.")); break;
+            case 12: ShowText("", Bread + GetText("後來家裡花了一大筆錢才讓他出來", "The family had to pay a large sum of money to finally get him released.")); break;
+            case 13: ShowText("", Bread + GetText("但他獲釋回家後，卻怎麼也找不到你", "But when he returned home, you were nowhere to be found.")); break;
+            case 14: ShowText("", Bread + GetText("父親說他以為你也被抓走了，心裡萬分焦急", "He said he thought you had been taken away too, and he was worried sick.")); break;
+            case 15: ShowText("", Bread + GetText("幸好，你現在平安回到了他身邊", "Fortunately, you are now safely back by his side.")); break;
+            case 16: ShowText("", Bread + GetText("你跟父親提起了最後看到的那隻怪魚", "You mentioned the strange-looking fish you saw at the very end.")); break;
+            case 17: ShowText("", Bread + GetText("什麼怪魚？我不記得我們前幾天有釣到那種東西啊。", "What strange fish? I don't remember us catching anything like that.")); break;
+            case 18: ShowText("", Bread + GetText("這一切，到底是怎麼回事呢？", "What exactly was going on?")); break;
+            case 19:
+                if (LevelManager.Instance) LevelManager.Instance.dayText.fontSize = 100;
+                ShowText("", GetText("全劇終", "THE END"));
+                break;
+            default:
+                SceneManager.LoadScene("Credits");
+                break;
+        }
+    }
+
     void Script_Keypad()
     {
     string sesame = GetText("芝麻", "Sesame");
@@ -425,6 +493,37 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
+    void Script_Key()
+    {
+        string sesame = GetText("芝麻", "Sesame");
+        switch (currentStep)
+        {
+            case 0:
+                ShowText(sesame, GetText("這把鑰匙...試試看能不能打開門把上的鎖頭吧。", "This key... should open some lock."));
+                break;
+            default:
+                EndConversation();
+                break;
+        }
+    }
+
+    void Script_PaintingTooHigh()
+    {
+        string sesame = GetText("芝麻", "Sesame");
+        switch (currentStep)
+        {
+            case 0:
+                ShowText(sesame, GetText("這個畫好像有點太高了...", "This painting is a bit too high..."));
+                break;
+            case 1:
+                ShowText(sesame, GetText("我需要一個東西墊腳，椅子之類的？", "I need something to step on, like a chair?"));
+                break;
+            default:
+                EndConversation();
+                break;
+        }
+    }
+
     // --- 工具區 ---
 
     public void SetHoverState(bool showCircle)
@@ -437,6 +536,46 @@ public class DialogueManager : MonoBehaviour
         }
         if (outerCircleObject != null) outerCircleObject.SetActive(showCircle);
         if (centerDotObject != null && !centerDotObject.activeSelf) centerDotObject.SetActive(true);
+    }
+
+    void UseFullScreenMode(string name, string content)
+    {
+        // 1. 隱藏原本的底部對話框
+        dialoguePanel.SetActive(false);
+
+        // 2. 啟動 LevelManager 的黑屏面板
+        if (LevelManager.Instance != null)
+        {
+            LevelManager.Instance.transitionPanel.SetActive(true);
+            Image bg = LevelManager.Instance.transitionPanel.GetComponent<Image>();
+            bg.color = Color.black; // 確保是全黑
+
+            // 3. 取得 LevelManager 裡的文字組件
+            TMP_Text fullScreenText = LevelManager.Instance.dayText;
+            fullScreenText.gameObject.SetActive(true);
+            fullScreenText.alignment = TextAlignmentOptions.Center; // 置中對齊
+
+            // 4. 設定內容 (比照圖二格式)
+            string displayName = string.IsNullOrEmpty(name) ? "" : name + " : ";
+            currentFullText = displayName + content;
+
+            // 5. 執行打字機 (這裡直接用 DialogueManager 的打字機，但目標改為全螢幕文字)
+            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+            typingCoroutine = StartCoroutine(TypeToFullScreen(fullScreenText, currentFullText));
+        }
+    }
+
+    IEnumerator TypeToFullScreen(TMP_Text targetText, string content)
+    {
+        isTyping = true;
+        targetText.text = "";
+        foreach (char letter in content.ToCharArray())
+        {
+            targetText.text += letter;
+            // 播放聲音 (這裡可以用原本的邏輯)
+            yield return new WaitForSeconds(typingSpeed);
+        }
+        isTyping = false;
     }
 
     void ShowOptions(string textA, string textB) { if (optionA_Object) { optionA_Object.SetActive(true); optionA_Object.GetComponentInChildren<TMP_Text>().text = textA; } if (optionB_Object) { optionB_Object.SetActive(true); optionB_Object.GetComponentInChildren<TMP_Text>().text = textB; } }
@@ -455,7 +594,13 @@ public class DialogueManager : MonoBehaviour
         Cursor.visible = false; 
         if (centerDotObject) centerDotObject.SetActive(true);
 
-        if (LevelManager.Instance == null || conversationID == 45 || conversationID == 46) return;
+        if (LevelManager.Instance == null || conversationID == 45 || conversationID == 46 || conversationID == 47 || conversationID == 51 || conversationID == 49) return;
+
+        if (LevelManager.Instance != null && (conversationID == 49 || conversationID == 33))
+        {
+            LevelManager.Instance.transitionPanel.SetActive(false);
+            LevelManager.Instance.dayText.gameObject.SetActive(false);
+        }
 
         int day = LevelManager.Instance.currentDay; 
         
@@ -472,5 +617,44 @@ public class DialogueManager : MonoBehaviour
         else if (day == 1) { 
             if (conversationID == 2) LevelManager.Instance.GoToNextLevel(); 
         } 
+    }
+
+    private void SetEndingUIMode(bool isEnding)
+    {
+        // 1. 隱藏/顯示原本的對話框背景
+        if (dialoguePanel != null)
+        {
+            // 如果你的背景是個 Image，我們把它調成全黑或隱藏
+            Image panelImage = dialoguePanel.GetComponent<Image>();
+            if (panelImage != null) panelImage.color = isEnding ? Color.black : new Color(0, 0, 0, 0.8f);
+        }
+
+        // 2. 處理文字組件
+        if (bodyText != null)
+        {
+            RectTransform rt = bodyText.GetComponent<RectTransform>();
+            if (isEnding)
+            {
+                // 切換到全螢幕置中模式
+                nameText.gameObject.SetActive(false); // 隱藏名字框
+                bodyText.alignment = TextAlignmentOptions.Center;
+
+                rt.anchorMin = new Vector2(0, 0);
+                rt.anchorMax = new Vector2(1, 1);
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+            }
+            else
+            {
+                // 還原回原本的底部模式 (請根據你 Inspector 原本的數值微調)
+                nameText.gameObject.SetActive(true);
+                bodyText.alignment = TextAlignmentOptions.TopLeft;
+
+                rt.anchorMin = new Vector2(0, 0);
+                rt.anchorMax = new Vector2(1, 0.3f); // 假設原本佔底部 30%
+                rt.offsetMin = new Vector2(50, 50);
+                rt.offsetMax = new Vector2(-50, -50);
+            }
+        }
     }
 }

@@ -77,7 +77,6 @@ public class LevelManager : MonoBehaviour
                 if (bloodTrailObject) bloodTrailObject.SetActive(false);
                 if (policeCarObject) policeCarObject.SetActive(false);
                 break;
-            case 1: break;
             case 2:
                 if (dadObject) dadObject.SetActive(false);
                 if (bloodStainObject) bloodStainObject.SetActive(true);
@@ -94,92 +93,56 @@ public class LevelManager : MonoBehaviour
         StartCoroutine(EndingSequence());
     }
 
-    public void PlayMonsterSound()
-    {
-        if (audioSource && monsterScreamClip) audioSource.PlayOneShot(monsterScreamClip);
-    }
-
-    public void QuitGame()
-    {
-        if (!string.IsNullOrEmpty(nextSceneName))
-        {
-            SceneManager.LoadScene(nextSceneName);
-        }
-        else
-        {
-            Debug.Log("遊戲結束");
-            Application.Quit();
-        }
-    }
-
     // ==========================================
-    // 結局演出流程 (修正 Day 3 閃現 Bug)
+    // 結局演出
     // ==========================================
-
     IEnumerator EndingSequence()
     {
-        // 1. 播放敲擊聲
-        if (audioSource && hitSoundClip)
-        {
-            audioSource.PlayOneShot(hitSoundClip);
-        }
+        if (audioSource && hitSoundClip) audioSource.PlayOneShot(hitSoundClip);
 
-        // 2. 瞬間黑屏
         transitionPanel.SetActive(true);
         Image bg = transitionPanel.GetComponent<Image>();
         bg.color = Color.black;
 
-        //修復關鍵：先清空文字，再打開物件！
         dayText.text = "";
         dayText.gameObject.SetActive(true);
+        dayText.alignment = TextAlignmentOptions.Center;
+
+        RectTransform rt = dayText.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
 
         bool isEnglish = PlayerPrefs.GetInt("Language", 0) == 1;
 
-        string t1 = isEnglish ? "???: Got the accomplice." : "???：抓到同夥";
-        string t2 = isEnglish ? "???: Take him in." : "???：帶回去";
-        string t3 = isEnglish ? "???: But he's just a kid!" : "???：可是他只是一個小孩欸";
-        string t4 = isEnglish ? "???: Don't forget, commie spies come in all ages." : "???：共匪不分年齡別忘記了";
-        string t5 = isEnglish ? "???: Wait, what the hell is that?" : "???：等等那是什麼";
-        string t6 = isEnglish ? "???: Stay away!!!" : "???：你不要過來啊!!!";
+        string[] lines = {
+            isEnglish ? "???: Got the accomplice." : "???：抓到同夥",
+            isEnglish ? "???: Take him in." : "???：帶回去",
+            isEnglish ? "???: But he's just a kid!" : "???：可是他只是一個小孩欸",
+            isEnglish ? "???: Don't forget, commie spies come in all ages." : "???：共匪不分年齡別忘記了",
+            isEnglish ? "???: Wait, what the hell is that?" : "???：等等那是什麼",
+            isEnglish ? "Stay away!!!" : "你不要過來啊!!!"
+        };
 
-        // 3. 等待 (被敲暈的空白期)
         yield return new WaitForSeconds(1.0f);
 
-        // 4. 開始對話
-        yield return StartCoroutine(TypewriterEffect(t1, Color.white, 36));
-        yield return new WaitForSeconds(1.5f);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            Color textColor = (i == 5) ? Color.red : Color.white;
+            int fontSize = (i == 5) ? 70 : 40;
 
-        yield return StartCoroutine(TypewriterEffect(t2, Color.white, 36));
-        yield return new WaitForSeconds(1.5f);
+            if (i == 4 && audioSource && chipEatClip) audioSource.PlayOneShot(chipEatClip);
+            if (i == 5 && audioSource && monsterScreamClip) audioSource.PlayOneShot(monsterScreamClip);
 
-        yield return StartCoroutine(TypewriterEffect(t3, Color.white, 36));
-        yield return new WaitForSeconds(1.5f);
+            yield return StartCoroutine(TypewriterEffect(lines[i], textColor, fontSize));
+            yield return new WaitForSeconds(1.8f);
+        }
 
-        yield return StartCoroutine(TypewriterEffect(t4, Color.white, 36));
         yield return new WaitForSeconds(2.0f);
-
-        yield return StartCoroutine(TypewriterEffect(t5, Color.white, 36));
-        yield return new WaitForSeconds(0.5f);
-
-        if (audioSource && chipEatClip)
-        {
-            audioSource.pitch = Random.Range(0.8f, 1.2f);
-            audioSource.PlayOneShot(chipEatClip);
-        }
-        yield return new WaitForSeconds(1.5f);
-
-        if (audioSource && monsterScreamClip)
-        {
-            audioSource.pitch = 1.0f;
-            audioSource.PlayOneShot(monsterScreamClip);
-        }
-
-        yield return StartCoroutine(TypewriterEffect(t6, Color.red, 60));
-
-        yield return new WaitForSeconds(3.0f);
-
         dayText.text = "";
 
+        // 載入 Home 場景
         SceneManager.LoadScene("Home");
     }
 
@@ -192,31 +155,28 @@ public class LevelManager : MonoBehaviour
         foreach (char letter in content.ToCharArray())
         {
             dayText.text += letter;
-
             if (audioSource && mysteryVoiceClip && !string.IsNullOrWhiteSpace(letter.ToString()))
             {
                 audioSource.pitch = Random.Range(0.9f, 1.1f);
                 audioSource.PlayOneShot(mysteryVoiceClip);
             }
-
             yield return new WaitForSeconds(typingSpeed);
         }
     }
 
-    // --- 其他協程 ---
+    // --- 補回：天數轉場與過場 ---
 
     IEnumerator ShowDayRoutine(string text, int nextDialogueID = -1)
     {
         transitionPanel.SetActive(true);
         dayText.text = text;
         dayText.gameObject.SetActive(true);
+        dayText.alignment = TextAlignmentOptions.Center;
         dayText.color = Color.white;
-        dayText.fontSize = 50;
+        dayText.fontSize = 60;
 
         Image bg = transitionPanel.GetComponent<Image>();
-        Color c = bg.color;
-        c.a = 1f;
-        bg.color = c;
+        bg.color = Color.black;
 
         yield return new WaitForSeconds(textStayDuration);
         dayText.gameObject.SetActive(false);
@@ -225,17 +185,14 @@ public class LevelManager : MonoBehaviour
         while (timer < fadeDuration)
         {
             timer += Time.deltaTime;
-            c.a = Mathf.Lerp(1f, 0f, timer / fadeDuration);
-            bg.color = c;
+            bg.color = new Color(0, 0, 0, Mathf.Lerp(1f, 0f, timer / fadeDuration));
             yield return null;
         }
-        c.a = 0f;
-        bg.color = c;
         transitionPanel.SetActive(false);
-
         if (nextDialogueID != -1) DialogueManager.Instance.StartConversation(nextDialogueID);
     }
 
+    //  補回：載入下一個關卡 (淡出)
     IEnumerator LoadNextLevelRoutine()
     {
         transitionPanel.SetActive(true);
@@ -251,11 +208,13 @@ public class LevelManager : MonoBehaviour
         if (!string.IsNullOrEmpty(nextSceneName)) SceneManager.LoadScene(nextSceneName);
     }
 
+    // 補回：時間跳轉 (淡入淡出並啟動對話)
     IEnumerator TimeSkipRoutine(int nextDialogueID)
     {
         transitionPanel.SetActive(true);
         Image bg = transitionPanel.GetComponent<Image>();
 
+        // 淡入黑色
         float timer = 0f;
         while (timer < 1.0f)
         {
@@ -266,6 +225,7 @@ public class LevelManager : MonoBehaviour
 
         yield return new WaitForSeconds(1.5f);
 
+        // 淡出黑色
         timer = 0f;
         while (timer < 1.0f)
         {

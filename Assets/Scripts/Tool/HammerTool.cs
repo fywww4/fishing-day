@@ -12,6 +12,13 @@ public class HammerTool : MonoBehaviour
     public static bool IsHoldingHammer = false; // 讓全世界知道玩家現在有沒有拿槌子
     private static bool hasPlayedDialogue = false; // 記錄是否說過話了
 
+    [Header("音效設定")]
+    public AudioSource audioSource;
+    public AudioClip dropSound;
+
+    // 新增：紀錄這把工具是不是「剛被玩家丟出來還沒落地」
+    private bool isDroppedAndFalling = false;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -60,12 +67,23 @@ public class HammerTool : MonoBehaviour
     // 丟棄方法
     public void Drop()
     {
-        isHeld = false;
-        IsHoldingHammer = false; // 狀態設為「沒拿」
-        transform.SetParent(null);
-        rb.isKinematic = false;
-        if (col != null) col.isTrigger = false;
-        rb.AddForce(handAnchor.forward * throwForce, ForceMode.Impulse);
+        IsHoldingHammer = false; 
+        transform.SetParent(null); 
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            Vector3 dropDirection = Camera.main.transform.forward + Vector3.up * 0.5f;
+            rb.AddForce(dropDirection * 2f, ForceMode.Impulse);
+        }
+
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = true;
+
+        //  標記：它現在在半空中飛了！
+        isDroppedAndFalling = true;
+        col.isTrigger = false;
     }
 
     void Swing()
@@ -84,6 +102,22 @@ public class HammerTool : MonoBehaviour
             Destroy(other.gameObject);
             Debug.Log("木板破裂！");
             // 這裡可以加入播放木頭碎裂聲或特效
+        }
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        // 只有在「被丟出且還沒落地」的狀態下，撞到東西才發出聲音
+        if (isDroppedAndFalling)
+        {
+            if (audioSource != null && dropSound != null)
+            {
+                audioSource.PlayOneShot(dropSound);
+            }
+
+            // 聲音播完了，把開關關掉！
+            // 這樣它在地上滾動或玩家踢到它時，就不會一直發出噪音
+            isDroppedAndFalling = false;
         }
     }
 }

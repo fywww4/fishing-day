@@ -2,50 +2,56 @@ using UnityEngine;
 
 public class KeyTool : MonoBehaviour
 {
-    public static bool IsHoldingKey = false; // 讓全世界知道玩家現在有沒有拿鑰匙
-    private static bool hasPlayedDialogue = false; // 記錄是否說過話 (如果需要的話)
-
-    [Header("設定")]
-    public Transform handAnchor;
-    public float throwForce = 5f;
+    // 供外部 (如 PlayerInteract) 讀取的狀態
+    public static bool IsHoldingKey = false;
 
     private Rigidbody rb;
     private Collider col;
     private bool isHeld = false;
+    private Transform handAnchor;
+    private bool hasPlayedDialogue = false; // 紀錄是否講過話了
 
-    void Awake()
+    [Header("音效設定")]
+    public AudioSource audioSource;
+    public AudioClip pickupSound;   // 拿取音效
+    public AudioClip dropSound;     // 掉落音效
+
+    // 紀錄是否剛被丟出去，用來觸發掉落聲音
+    private bool isDroppedAndFalling = false;
+
+    void Start()
     {
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
     }
 
-    void Update()
-    {
-        // 按 Q 丟掉鑰匙
-        if (isHeld && Input.GetKeyDown(KeyCode.Q))
-        {
-            Drop();
-        }
-    }
-
+    // ---  撿起鑰匙 ---
     public void PickUp(Transform anchor)
     {
         if (rb == null) return;
 
+        // 1. 播放拿取音效 (新增)
+        if (audioSource != null && pickupSound != null)
+        {
+            audioSource.PlayOneShot(pickupSound);
+        }
+
+        // 2. 狀態與物理設定 (你原本的邏輯)
         isHeld = true;
-        IsHoldingKey = true; //標記為拿起鑰匙
+        IsHoldingKey = true;
         handAnchor = anchor;
 
         rb.isKinematic = true;
-        if (col != null) col.isTrigger = true;
+        if (col != null) col.isTrigger = true; // 拿在手上變成幽靈
 
+        // 3. 綁定到手上
         transform.SetParent(handAnchor);
         transform.localPosition = Vector3.zero;
 
-        
+        //  4. 你要求的特定旋轉角度
         transform.localRotation = Quaternion.Euler(0, 90, 0);
 
-        
+        //  5. 觸發劇情對話 (只觸發一次)
         if (!hasPlayedDialogue)
         {
             DialogueManager.Instance.StartConversation(47);
@@ -53,15 +59,45 @@ public class KeyTool : MonoBehaviour
         }
     }
 
+    // ---  丟棄鑰匙 ---
     public void Drop()
     {
+        if (!isHeld) return; // 防呆：沒拿在手上就不能丟
+
         isHeld = false;
-        IsHoldingKey = false; //標記為丟掉鑰匙
-        transform.SetParent(null);
+        IsHoldingKey = false;
+        transform.SetParent(null); // 解除與手的綁定
 
-        rb.isKinematic = false;
-        if (col != null) col.isTrigger = false;
+        isDroppedAndFalling = true; // 開啟掉落偵測開關！
 
-        rb.AddForce(handAnchor.forward * throwForce, ForceMode.Impulse);
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            // 讓它沿著視角前方加上一點往上的力道拋出
+            Vector3 dropDirection = Camera.main.transform.forward + Vector3.up * 0.5f;
+            rb.AddForce(dropDirection * 2f, ForceMode.Impulse);
+        }
+
+        if (col != null)
+        {
+            col.enabled = true;
+            col.isTrigger = false; //  關鍵：關閉 Trigger，變回實體，避免掉入虛空！
+        }
+    }
+
+    // --- 碰撞偵測 (掉落音效) ---
+    void OnCollisionEnter(Collision collision)
+    {
+        // 如果是剛被丟出去的狀態，撞到東西就發出聲音
+        if (isDroppedAndFalling)
+        {
+            if (audioSource != null && dropSound != null)
+            {
+                audioSource.PlayOneShot(dropSound);
+            }
+
+            // 聲音播完了，把開關關掉，這樣它在地上被踢到才不會一直發出聲音
+            isDroppedAndFalling = false;
+        }
     }
 }

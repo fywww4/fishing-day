@@ -2,34 +2,59 @@ using UnityEngine;
 
 public class ChairPlaceTarget : MonoBehaviour
 {
-    [Header("地板上的那張椅子")]
-    public GameObject floorChair; // 拖入那張要徹底隱藏的椅子
+    public bool isPlaced = false; // 紀錄椅子是不是已經放上去了
 
-    // 讓畫作腳本讀取的標記
-    public bool isPlaced = false;
+    [Header("視覺提示")]
+    public GameObject highlightVisual; // 拖入「虛線 Quad 物件」
 
-    public void PlaceChair()
+    [Header("實體椅子設定")]
+    public GameObject realChairModel;  // 新增：拖入「要出現在地上的實體椅子模型」
+
+    void Update()
     {
-        // 1. 標記已放置
-        isPlaced = true;
-
-        // 2. 關鍵修改：直接把「整個椅子物件」喚醒！(外觀和 Collider 會一起出現)
-        if (floorChair != null)
+        // 1. 如果椅子已經放上去了，就永遠隱藏提示框，然後不要再執行下面的邏輯
+        if (isPlaced)
         {
-            floorChair.SetActive(true);
+            if (highlightVisual != null && highlightVisual.activeSelf)
+            {
+                highlightVisual.SetActive(false);
+            }
+            return;
         }
 
-        // 3. 更新玩家狀態
-        ChairTool.IsHoldingChair = false;
+        // 2. 如果還沒放上去，就根據「玩家有沒有拿著椅子」來決定要不要顯示
+        if (highlightVisual != null)
+        {
+            if (ChairTool.IsHoldingChair)
+            {
+                highlightVisual.SetActive(true);  // 拿著椅子：顯示虛線
+            }
+            else
+            {
+                highlightVisual.SetActive(false); // 沒拿椅子：隱藏虛線
+            }
+        }
+    }
 
-        // 4. 銷毀玩家手上拿著的那個椅子物件
+    // 當玩家點擊這個目標點時執行 (由 PlayerInteract 呼叫)
+    public void PlaceChair()
+    {
+        isPlaced = true;
+
+        //  1. 讓地上的實體椅子出現
+        if (realChairModel != null)
+        {
+            realChairModel.SetActive(true);
+        }
+
+        //  2. 消除手上的椅子 (消耗道具)
+        ChairTool.IsHoldingChair = false; // 狀態改為「沒拿椅子」
+
+        // 找出場景中玩家手上的那把椅子並銷毀它
         ChairTool heldChair = FindObjectOfType<ChairTool>();
         if (heldChair != null)
         {
             Destroy(heldChair.gameObject);
         }
-
-        // 5. 放置成功後，把這個地板觸發點關掉，避免重複放置
-        gameObject.SetActive(false);
     }
 }

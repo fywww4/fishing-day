@@ -12,6 +12,13 @@ public class ChairTool : MonoBehaviour
     private Collider col;
     private bool isHeld = false;
 
+    [Header("音效設定")]
+    public AudioSource audioSource;
+    public AudioClip dropSound;
+
+    // 新增：紀錄這把工具是不是「剛被玩家丟出來還沒落地」
+    private bool isDroppedAndFalling = false;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -43,13 +50,38 @@ public class ChairTool : MonoBehaviour
 
     public void Drop()
     {
-        isHeld = false;
         IsHoldingChair = false;
         transform.SetParent(null);
 
-        rb.isKinematic = false;
-        if (col != null) col.isTrigger = false;
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            Vector3 dropDirection = Camera.main.transform.forward + Vector3.up * 0.5f;
+            rb.AddForce(dropDirection * 2f, ForceMode.Impulse);
+        }
 
-        rb.AddForce(handAnchor.forward * throwForce, ForceMode.Impulse);
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = true;
+
+        //  標記：它現在在半空中飛了！
+        isDroppedAndFalling = true;
+        col.isTrigger = false;
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        // 只有在「被丟出且還沒落地」的狀態下，撞到東西才發出聲音
+        if (isDroppedAndFalling)
+        {
+            if (audioSource != null && dropSound != null)
+            {
+                audioSource.PlayOneShot(dropSound);
+            }
+
+            // 聲音播完了，把開關關掉！
+            // 這樣它在地上滾動或玩家踢到它時，就不會一直發出噪音
+            isDroppedAndFalling = false;
+        }
     }
 }
